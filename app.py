@@ -1,5 +1,6 @@
 import os
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, request, render_template, send_from_directory
+import csv
 
 #----------------------------------------
 # initialization
@@ -11,9 +12,35 @@ app.config.update(
     DEBUG = True,
 )
 
+ALLOWED_EXTENSIONS = set(['csv',])
+
 #----------------------------------------
 # controllers
 #----------------------------------------
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+@app.route('/upload', methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        file = request.files['file']
+        given_name = request.form["given_name"]
+        if file and allowed_file(file.filename):
+        	print file.filename
+        	print given_name
+        	for row in csv.DictReader(file.stream):
+    				if row["Date/Time"] != "":
+        				print float(row["Target 1"])
+       #  	with open(file.stream) as f:
+    			# for row in csv.DictReader(f):
+    			# 	if row["Date/Time"] != "":
+       #  				print float(row["Target 1"])
+            # file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            # return redirect(url_for('uploaded_file',
+                                    # filename=filename))
+    return ""
 
 @app.route("/")
 def index():
