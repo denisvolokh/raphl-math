@@ -102,7 +102,7 @@ def list_records():
 @app.route('/listfiles', methods=['GET', 'POST'])
 def list_files():
 	files = db["files"].find()
-	print "[+] ", files.count()
+	# print "[+] ", files.count()
 	return dumps(list(files))
 
 def allowed_file(filename):
