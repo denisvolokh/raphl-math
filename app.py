@@ -19,7 +19,10 @@ app.config.update(
 
 ALLOWED_EXTENSIONS = set(['csv',])
 
-database = urlparse(os.environ.get("MONGOHQ_URL"))
+# mongodb://localhost/raphl-math
+database = os.environ.get("MONGOHQ_URL", "")
+if os.environ.get("MONGOHQ_URL") == None:
+	database = "localhost"
 print "[+] ", database
 
 client = MongoClient(database)
