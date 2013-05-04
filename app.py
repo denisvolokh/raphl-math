@@ -94,6 +94,7 @@ def list_records():
 @app.route('/listdataset', methods=['GET', 'POST'])
 def list_data_set():
 	datasets = DataSet.objects.all()
+	print "[+] ", datasets.count()
 	print datasets.to_json()
 	return datasets.to_json()
 
