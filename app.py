@@ -22,12 +22,12 @@ ALLOWED_EXTENSIONS = set(['csv',])
 # mongodb://localhost/raphl-math
 database = os.environ.get("MONGOHQ_URL", "")
 if os.environ.get("MONGOHQ_URL") == None:
-	database = "localhost"
+	database = "mongodb://root:admin@linus.mongohq.com:10061/app15435588"
 print "[+] ", database
 
 # client = MongoClient("mongodb://heroku:859c8a4107b78276aa47ee214977a061@linus.mongohq.com:10061/app15435588")
-# client = MongoClient(database)
-client = MongoClient("mongodb://root:admin@linus.mongohq.com:10061/app15435588")
+client = MongoClient(database)
+# client = MongoClient("mongodb://root:admin@linus.mongohq.com:10061/app15435588")
 db = client['app15435588']
 print db.collection_names()
 
