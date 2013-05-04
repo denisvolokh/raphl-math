@@ -31,9 +31,9 @@
 					<th>
 						STOP1
 					</th>
-					<th>
+					<!-- <th>
 						STOP
-					</th>
+					</th> -->
 					<th>
 						TARGET1
 					</th>
@@ -47,7 +47,7 @@
 						1<sup>st</sup> EXIT
 					</th>
 					<th>
-						2<sup>st</sup> exit
+						2<sup>st</sup> EXIT
 					</th>
 					<th>
 						PROFIT(bp)
@@ -61,57 +61,57 @@
 				</tr>
 			</thead>
 			<tbody>
-				<tr class="success">
+				<tr ng-repeat="item in records" class="{{getRecordClass(item)}}">
 					<td>
-						3/2/2010 14:30
+						{{item.date}}
 					</td>
 					<td>
+						{{item.open}}
+					</td>
+					<td>
+						{{item.high}}
+					</td>
+					<td>
+						{{item.low}}
+					</td>
+					<td>
+						{{item.last_price}}
+					</td>
+					<td>
+						{{item.action}}
+					</td>
+					<td>
+						{{item.vol}}
+					</td>
+					<td>
+						{{item.stop1}}
+					</td>
+					<!-- <td>
 						1.50638
+					</td> -->
+					<td>
+						{{item.target1}}
 					</td>
 					<td>
-						1.50638
+						{{item.target2}}
 					</td>
 					<td>
-						1.50638
+						
 					</td>
 					<td>
-						1.50638
+						
 					</td>
 					<td>
-						<span class="label label-success">SELL</span>
+						
 					</td>
 					<td>
-						1.50638
+						
 					</td>
 					<td>
-						1.50638
+						
 					</td>
 					<td>
-						1.50638
-					</td>
-					<td>
-						1.50638
-					</td>
-					<td>
-						1.50638
-					</td>
-					<td>
-						1.50638
-					</td>
-					<td>
-						1.50638
-					</td>
-					<td>
-						1.50638
-					</td>
-					<td>
-						1.50638
-					</td>
-					<td>
-						1.50638
-					</td>
-					<td>
-						1.50638
+						
 					</td>
 				</tr>
 			</tbody>

@@ -5,7 +5,10 @@
 				<li class="nav-header">
 					Original Data
 				</li>
-				<li class="active">
+				<li ng-repeat="item in datasets">
+					<a href="#/calc/{{item._id.$oid}}">{{item.name}}</a>
+				</li>
+				<!-- <li class="active">
 					<a href="#/calc">Home</a>
 				</li>
 				<li>
@@ -13,7 +16,7 @@
 				</li>
 				<li>
 					<a href="#/calc">Applications</a>
-				</li>
+				</li> -->
 			</ul>
 		</div>
 		

@@ -1,10 +1,10 @@
-var app = angular.module("app", ['ngResource']);
+var app = angular.module("app", ['ngResource', "$strap.directives"]);
 
 app.config(function($routeProvider) {
 	$routeProvider.when("/", {
 		templateUrl: "static/partials/home.html",
 		controller: "HomeController"
-	}).when("/calc", {
+	}).when("/calc/:id", {
 		templateUrl: "static/partials/calc.html?12312312",
 		controller: "CalcController" 
 	}).otherwise({
