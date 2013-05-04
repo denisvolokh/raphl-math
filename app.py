@@ -27,7 +27,6 @@ print "[+] ", database
 
 client = MongoClient(database)
 db = client['raphl-math']
-print db.collection_names()
 
 # connect(database.path[1:],
 # 		host=database.hostname,
