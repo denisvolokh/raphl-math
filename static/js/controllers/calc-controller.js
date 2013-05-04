@@ -9,9 +9,6 @@ function CalcController($log, $scope, $routeParams, $http) {
 	}
 
 	$scope.getRecordClass = function(item) {
-		if (item.highlight == true)
-			return "success"
-
-		return ""
+		return item.highlight
 	}
 }
