@@ -8,21 +8,14 @@
 				<li ng-repeat="item in datasets">
 					<a href="#/calc/{{item._id.$oid}}">{{item.name}}</a>
 				</li>
-				<!-- <li class="active">
-					<a href="#/calc">Home</a>
-				</li>
-				<li>
-					<a href="#/calc">Library</a>
-				</li>
-				<li>
-					<a href="#/calc">Applications</a>
-				</li> -->
 			</ul>
 		</div>
 		
 		<div class="span9">
 			<div class="row-fluid">
-				  <form class="form-horizontal" method="POST" action="/upload" enctype="multipart/form-data">
+				<form class="form-horizontal" 
+				  	ng-submit="submitFile()" 
+				  	enctype="multipart/form-data">
 				    <fieldset>
 				      <div id="legend">
 				        <legend class="">Upload New Data</legend>
@@ -32,7 +25,9 @@
 				      <div class="control-group">
 				        <label class="control-label"  for="username">Name</label>
 				        <div class="controls">
-				          <input type="text" name="given_name" placeholder="Name your data (optional)" class="input-xlarge">
+				          <input type="text" name="given_name" placeholder="Name your data (optional)" 
+				          	class="input-xlarge"
+				          	ng-model="custom_name">
 				        </div>
 				      </div>
 				 
@@ -40,20 +35,23 @@
 				      <div class="control-group">
 				        <label class="control-label" for="email">Choose file</label>
 				        <div class="controls">
-				          <input type="file" name="file" class="input-xlarge">
+				          <input type="file" name="file" class="input-xlarge"
+				          	onchange="angular.element(this).scope().setFile(this)">
 				        </div>
 				      </div>
 				 				 				 
 				      <!-- Submit -->
 				      <div class="control-group">
 				        <div class="controls">
-				          <button class="btn btn-success">Upload</button>
+				          <button class="btn btn-success"
+				          	ng-show="readyToUpload">Upload</button>
 				        </div>
 				      </div>
 				 
 				    </fieldset>
 				  </form>
 				</div>	
+				<!-- <span class="alert">File is successfully uploaded.</span> -->
 		</div>
 	</div>
 </div>
