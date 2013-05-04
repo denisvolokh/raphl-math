@@ -25,60 +25,10 @@ if os.environ.get("MONGOHQ_URL") == None:
 	database = "localhost"
 print "[+] ", database
 
+# client = MongoClient("mongodb://heroku:859c8a4107b78276aa47ee214977a061@linus.mongohq.com:10061/app15435588")
 client = MongoClient(database)
 db = client['raphl-math']
-
-# connect(database.path[1:],
-# 		host=database.hostname,
-# 		port=database.port,
-# 		username=database.username,
-# 		password=database.password)
-
-# class DataSet(Document):
-# 	name = StringField()
-# 	created = DateTimeField()
-
-# 	def to_dict(self):
-# 		return mongo_to_dict_helper(self)
-
-# class Record(Document):
-# 	dataset_id = StringField()
-# 	date = StringField()
-# 	created = DateTimeField()
-# 	open = FloatField()
-# 	high = FloatField()
-# 	low = FloatField()
-# 	last_price=FloatField()
-# 	action=StringField()
-# 	vol=FloatField()
-# 	stop1=FloatField()
-# 	target1=FloatField()
-# 	target2=FloatField()
-
-# 	highlight=BooleanField(default=False)
-
-# 	def to_dict(self):
-# 		return mongo_to_dict_helper(self)
-
-# def mongo_to_dict_helper(obj):
-# 	return_data = []
-# 	for field_name in obj._fields:
-# 		if field_name in ("id",):
-# 			continue
-
-# 		data = obj._data[field_name]
-
-# 		if isinstance(obj._fields[field_name], StringField):
-# 			return_data.append((field_name, str(data)))
-# 		elif isinstance(obj._fields[field_name], FloatField):
-# 			return_data.append((field_name, float(data)))
-# 		elif isinstance(obj._fields[field_name], BooleanField):
-# 			return_data.append((field_name, bool(data)))
-# 		# elif isinstance(obj._fields[field_name], ListField):
-# 		# 	return_data.append((field_name, data))
-# 		# else:
-#             # You can define your logic for returning elements
-# 	return dict(return_data)
+print db.collection_names()
 
 #----------------------------------------
 # controllers
@@ -116,9 +66,10 @@ def upload_file():
 		print "[+] Files: ", request.files
 		file = request.files['file']
 		print "[+] Files: ", file
-    	given_name = request.form["name"]
-    	if given_name == None:
-    		given_name = file.filename
+		if "name" in request.form:
+			given_name = request.form["name"]
+		else:
+			given_name = file.filename	
     	print "[+] Custom name: ", given_name
     	if file and allowed_file(file.filename):
         	_file = {
