@@ -38,12 +38,14 @@ print db.collection_names()
 @app.route('/listrecords', methods=['GET', 'POST'])
 def list_records():
 	id = request.args["dataset_id"]
+	position = request.args["position"]
+
 	records = db["records"].find({"file_id" : str(id)})
 	
 	marked = mark_records_buy_action(records, "SELL")
 	marked = mark_records_buy_action(marked, "BUY")
 
-	calculated = do_calc(marked) 
+	calculated = do_calc(marked, position) 
 
 	return dumps(list(calculated))
 
@@ -122,8 +124,7 @@ def mark_records_buy_action(collection, action="SELL"):
 
 	return _coll
 
-def do_calc(coll):
-	position = 5000000				
+def do_calc(coll, position=1000000):
 	entry = ""
 	entry_stop = ""		
 	entry_target1 = ""
@@ -134,8 +135,8 @@ def do_calc(coll):
 				print "[+] STOPPED OUT @ ", float(item["high"])
 				print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
 				item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
-				print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * position
-				item["profit_ccy"] = "{0:.4f}".format((float(entry) - float(entry_stop)) * position)
+				print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
+				item["profit_ccy"] = "{0:.4f}".format((float(entry) - float(entry_stop)) * float(position))
 				entry = ""
 				item["highlight"] = "error"
 			# print item["low"], entry_target1	
