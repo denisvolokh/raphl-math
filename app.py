@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from datetime import datetime
 from flask import jsonify
 from bson.json_util import dumps
+from bson.objectid import ObjectId
 
 #----------------------------------------
 # initialization
@@ -40,6 +41,7 @@ def list_records():
 	id = request.args["dataset_id"]
 	position = request.args["position"]
 
+	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
 	
 	marked = mark_records_buy_action(records, "SELL")
@@ -47,7 +49,7 @@ def list_records():
 
 	calculated = do_calc(marked, position) 
 
-	return dumps(list(calculated))
+	return dumps(dict(file=file, result=list(calculated)))
 
 @app.route('/listfiles', methods=['GET', 'POST'])
 def list_files():

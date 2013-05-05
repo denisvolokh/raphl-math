@@ -8,7 +8,8 @@ function CalcController($log, $scope, $routeParams, $http) {
 			var pos = Number($scope.position) * 1000000;
 			$http.get("/listrecords?dataset_id=" + $routeParams["id"] + "&position=" + pos)
 				.success(function(data) {
-					$scope.records = data;
+					$scope.records = data.result;
+					$scope.filename = data.file.name;
 				})
 		}	
 	}
