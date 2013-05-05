@@ -39,7 +39,6 @@ print db.collection_names()
 @app.route('/listrecords', methods=['GET', 'POST'])
 def list_records():
 	id = request.args["dataset_id"]
-	position = request.args["position"]
 
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
@@ -47,9 +46,26 @@ def list_records():
 	marked = mark_records_buy_action(records, "SELL")
 	marked = mark_records_buy_action(marked, "BUY")
 
-	calculated = do_calc(marked, position) 
+	# calculated = do_calc(marked, position) 
 
-	return dumps(dict(file=file, result=list(calculated)))
+	return dumps(dict(file=file, result=list(marked)))
+
+
+@app.route("/api/calc", methods=["GET", "POST"])
+def calc():
+	id = request.args["dataset_id"]
+	position = request.args["position"]
+
+	file = db["files"].find_one({"_id": ObjectId(id)})
+	records = db["records"].find({"file_id" : str(id)})
+	
+	marked = mark_records_buy_action(records, "SELL")
+	# marked = mark_records_buy_action(marked, "BUY")
+
+	calculated = do_calc(marked, position)
+	
+	return dumps(dict(file=file, result=list(marked)))	
+
 
 @app.route('/listfiles', methods=['GET', 'POST'])
 def list_files():
@@ -159,7 +175,10 @@ def do_calc(coll, position=1000000):
 					exit2 = entry_stop	
 					item["exit2"] = exit2
 				print "[+] EXIT 1 @ ", exit1
-				print "[+] EXIT 2 @ ", exit2	
+				print "[+] EXIT 2 @ ", exit2
+				closed_target1 = True
+				closed_target2 = True
+
 
 			if float(entry_target1) >= float(item["low"]) or float(entry_target2) >= float(item["low"]):
 				# if float(entry_target1) >= float(item["low"]) and float(entry_target2) >= float(item["low"]):
@@ -191,7 +210,8 @@ def do_calc(coll, position=1000000):
 				if not closed_target2:
 					if float(entry_target2) >= float(item["low"]):
 						print "[+] REACHED TARGET-2 @ ", float(item["low"]) 
-						print "[+] PROFIT ", str(2500000 * (float(entry) - float(entry_target2)))
+						print "[+] CHECK DATA:", entry, entry_target2
+						print "[+] PROFIT ", str(float(position)/2 * (float(entry) - float(entry_target2)))
 						entry_stop = entry
 						print "[+] NEW STOP ", entry_stop
 						if exit1 == "":
@@ -218,7 +238,9 @@ def do_calc(coll, position=1000000):
 				entry = ""
 				entry_stop = ""
 				entry_target1 = ""
-				entry_target2 = ""		
+				entry_target2 = ""
+				exit1 = ""
+				exit2 = ""		
 
 		else:
 			if "marked" in item and item["marked"]:
