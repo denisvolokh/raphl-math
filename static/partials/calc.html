@@ -1,21 +1,4 @@
 <div class="container-fluid">
-	<div class="row-fluid">
-		<p>
-			<span class="label label-info">{{filename}}</span>
-		</p>
-		<div class="well">
-			<form class="form-inline">
-				<select class="span2" ng-model="position">
-					<option value="1">1 000 000</option>
-					<option value="2">2 000 000</option>
-					<option value="5">5 000 000</option>
-					<option value="10">10 000 000</option>
-				</select>
-				<button class="btn" type="button"
-					ng-click="reCalculate()"><em class="icon-repeat"></em> Re-calculate</button>
-				<button class="btn" type="button"><em class="icon-share"></em> Export</button>	
-			</form>
-		</div>
 		<table class="table table-condensed table-hover">
 			<thead>
 				<tr>
@@ -73,54 +56,54 @@
 				</tr>
 			</thead>
 			<tbody>
-				<tr ng-repeat="item in records" class="{{getRecordClass(item)}}">
+				<tr ng-repeat="item in records" class="{[{getRecordClass(item)}]}">
 					<td>
-						{{item.date}}
+						{[{item.date}]}
 					</td>
 					<td>
-						{{item.open}}
+						{[{item.open}]}
 					</td>
 					<td>
-						{{item.high}}
+						{[{item.high}]}
 					</td>
 					<td>
-						{{item.low}}
+						{[{item.low}]}
 					</td>
 					<td>
-						{{item.last_price}}
+						{[{item.last_price}]}
 					</td>
 					<td>
-						{{item.action}}
+						{[{item.action}]}
 					</td>
 					<td>
-						{{item.vol}}
+						{[{item.vol}]}
 					</td>
 					<td>
-						{{item.stop1}}
+						{[{item.stop1}]}
 					</td>
 					<!-- <td>
 						1.50638
 					</td> -->
 					<td>
-						{{item.target1}}
+						{[{item.target1}]}
 					</td>
 					<td>
-						{{item.target2}}
+						{[{item.target2}]}
 					</td>
 					<td>
-						{{item.trades}}
+						{[{item.trades}]}
 					</td>
 					<td>
-						{{item.exit1}}
+						{[{item.exit1}]}
 					</td>
 					<td>
-						{{item.exit2}}
+						{[{item.exit2}]}
 					</td>
 					<td>
-						{{item.profit_bp}}
+						{[{item.profit_bp}]}
 					</td>
 					<td>
-						{{item.profit_ccy}}
+						{[{item.profit_ccy}]}
 					</td>
 					<td>
 						

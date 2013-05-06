@@ -1,5 +1,5 @@
-function HomeController($http, $scope, $log) {
-
+function HomeController($http, $scope, $log, $rootScope) {
+	$rootScope.root.showCalcPanel = false;
 
 	$http.get("/listfiles")
 		.success(function(data) {

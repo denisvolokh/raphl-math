@@ -1,5 +1,10 @@
 var app = angular.module("app", ['ngResource', "$strap.directives"]);
 
+app.config(function($interpolateProvider) {
+	$interpolateProvider.startSymbol('{[{');
+  	$interpolateProvider.endSymbol('}]}');
+});
+
 app.config(function($routeProvider) {
 	$routeProvider.when("/", {
 		templateUrl: "static/partials/home.html",
@@ -14,20 +19,11 @@ app.config(function($routeProvider) {
 
 app.run(function($rootScope, $location, $http, $log) {
 	$log.info("[+] App is running!")
-	$rootScope.root = {
-        
-    };
-
-	// $http.get(user_api + "/islogged")
-	// 	.success(function(data) {
-	// 		$rootScope.root.isUserLogged = data.status;
-	// 		if (data.status == true) {
-	// 			$rootScope.root.user = data.result;		
-	// 		}
-	// 		$location.path("/home");
-	// 	})
-	// 	.error(function(data) {
-	// 		$log.warn("[-] Error on /islogged");
-	// 	});
 	
+	$rootScope.root = {
+		showCalcPanel: false,
+		loading: false,
+		selectedFile: "",
+		position: 1000000
+	}
 });

@@ -6,7 +6,7 @@
 					Original Data
 				</li>
 				<li ng-repeat="item in datasets">
-					<a href="#/calc/{{item._id.$oid}}">{{item.name}}</a>
+					<a href="#/calc/{[{item._id.$oid}]}">{[{item.name}]}</a>
 				</li>
 			</ul>
 		</div>
