@@ -20,7 +20,7 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 		if (angular.isDefined($routeParams["id"])) {
 			$rootScope.root.loading = true;
 			$log.info($scope.position);
-			var pos = Number($scope.position) * 1000000;
+			var pos = Number($rootScope.root.position);
 			$http.get("/api/calc?dataset_id=" + $routeParams["id"] + "&position=" + pos)
 				.success(function(data) {
 					$scope.records = data.result;

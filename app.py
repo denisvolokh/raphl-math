@@ -1,3 +1,4 @@
+
 import os
 from flask import Flask, request, redirect, render_template, send_from_directory
 import csv
@@ -46,7 +47,7 @@ def list_records():
 	marked = mark_records_buy_action(records, "SELL")
 	marked = mark_records_buy_action(marked, "BUY")
 
-	# calculated = do_calc(marked, position) 
+	print marked
 
 	return dumps(dict(file=file, result=list(marked)))
 
@@ -60,7 +61,7 @@ def calc():
 	records = db["records"].find({"file_id" : str(id)})
 	
 	marked = mark_records_buy_action(records, "SELL")
-	# marked = mark_records_buy_action(marked, "BUY")
+	marked = mark_records_buy_action(marked, "BUY")
 
 	calculated = do_calc(marked, position)
 	
@@ -114,6 +115,7 @@ def upload_file():
     						"exit1": "",
     						"exit2": ""
     					}
+    					print record
     					db["records"].insert(record)
 	return ""
 
@@ -122,9 +124,9 @@ def index():
     return render_template('index.html')
 
 def mark_records_buy_action(collection, action="SELL"):
-	opp_action = "BUY"
-	if action == "BUY":
-		opp_action = "SELL"
+	# opp_action = "BUY"
+	# if action == "BUY":
+	# 	opp_action = "SELL"
 
 	skip_subsequent_flag = False			
 	_coll = []
@@ -138,14 +140,16 @@ def mark_records_buy_action(collection, action="SELL"):
 					item["marked"] = True
 					skip_subsequent_flag = True
 
-			if item["action"] == "" or item["action"] == opp_action: 
+			if item["action"] == "" or item["action"] == get_opposite_action(item["action"]): 
 				skip_subsequent_flag = False		
 
 		_coll.append(item)		
 
 	return _coll
 
+
 def do_calc(coll, position=1000000):
+	entry_action = ""
 	entry = ""
 	entry_stop = ""		
 	entry_target1 = ""
@@ -157,79 +161,153 @@ def do_calc(coll, position=1000000):
 	closed_target1 = False
 	closed_target2 = False
 	profit_bp = ""
+	just_closed = False
 	for idx, item in enumerate(coll):
 		if entry:
+			just_closed = False		
 			# STOPPED OUT, NO TARGETS
-			if float(item["high"]) >= float(entry_stop):
-				print "[+] STOPPED OUT @ ", float(item["high"])
-				print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
-				item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
-				print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
-				item["profit_ccy"] = "{0:.4f}".format((float(entry) - float(entry_stop)) * float(position))
-				entry = ""
-				item["highlight"] = "error"
-				if exit1 == "":
-					exit1 = entry_stop	
-					item["exit1"] = exit1
-				elif exit2 == "":
-					exit2 = entry_stop	
-					item["exit2"] = exit2
-				print "[+] EXIT 1 @ ", exit1
-				print "[+] EXIT 2 @ ", exit2
-				closed_target1 = True
-				closed_target2 = True
+			if entry_action == "SELL":
+				print "[+] Action: SELL"
+				if float(item["high"]) >= float(entry_stop):
+					print "[+] STOPPED OUT @ ", float(item["high"])
+					print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
+					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
+					print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format((float(entry) - float(entry_stop)) * float(position))
+					entry = ""
+					item["highlight"] = "error"
+					if exit1 == "":
+						exit1 = entry_stop	
+						item["exit1"] = exit1
+					elif exit2 == "":
+						exit2 = entry_stop	
+						item["exit2"] = exit2
+					print "[+] EXIT 1 @ ", exit1
+					print "[+] EXIT 2 @ ", exit2
+					closed_target1 = True
+					closed_target2 = True	
+					just_closed = True
+			elif entry_action == "BUY":
+				print "[+] Action: BUY"
+				if float(item["low"]) <= float(entry_stop):
+					print "[+] STOPPED OUT @ ", float(item["high"])
+					print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
+					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
+					print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format((float(entry) - float(entry_stop)) * float(position))
+					entry = ""
+					item["highlight"] = "error"
+					if exit1 == "":
+						exit1 = entry_stop	
+						item["exit1"] = exit1
+					elif exit2 == "":
+						exit2 = entry_stop	
+						item["exit2"] = exit2
+					print "[+] EXIT 1 @ ", exit1
+					print "[+] EXIT 2 @ ", exit2
+					closed_target1 = True
+					closed_target2 = True	
+					just_closed = True		
 
+			if entry_action == "SELL":		
+				if float(entry_target1) >= float(item["low"]) or float(entry_target2) >= float(item["low"]):
+					if not closed_target1:
+						if float(entry_target1) >= float(item["low"]):
+							print "[+] REACHED TARGET-1 @ ", float(item["low"]) 
+							print "[+] PROFIT ", str(2500000 * (float(entry) - float(entry_target1)))
+							entry_stop = entry
+							print "[+] NEW STOP ", entry_stop
+							if exit1 == "":
+								exit1 = entry_target1	
+								item["exit1"] = exit1
+								profit_bp = float(trade) - float(exit1)
+								item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+								item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+							elif exit2 == "":
+								exit2 = entry_target2	
+								item["exit2"] = exit2
+								profit_bp = float(trade) - float(exit2)
+								item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+								item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+							print "[+] EXIT 1 @ ", exit1
+							print "[+] EXIT 2 @ ", exit2
+							closed_target1 = True
+							item["highlight"] = "warning"
+							continue
 
-			if float(entry_target1) >= float(item["low"]) or float(entry_target2) >= float(item["low"]):
-				# if float(entry_target1) >= float(item["low"]) and float(entry_target2) >= float(item["low"]):
-					# print "[+] REACHED ALL TARGETS @ ", float(item["low"]) 
+					if not closed_target2:
+						if float(entry_target2) >= float(item["low"]):
+							print "[+] REACHED TARGET-2 @ ", float(item["low"]) 
+							print "[+] CHECK DATA:", entry, entry_target2
+							print "[+] PROFIT ", str(float(position)/2 * (float(entry) - float(entry_target2)))
+							entry_stop = entry
+							print "[+] NEW STOP ", entry_stop
+							if exit1 == "":
+								exit1 = entry_target1	
+								item["exit1"] = exit1
+								profit_bp = float(trade) - float(exit1)
+								item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+								item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+							elif exit2 == "":
+								exit2 = entry_target2	
+								item["exit2"] = exit2
+								profit_bp = float(trade) - float(exit2)
+								item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+								item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+							print "[+] EXIT 1 @ ", exit1
+							print "[+] EXIT 2 @ ", exit2
+							closed_target2 = True
+							item["highlight"] = "warning"
+							
+			elif entry_action == "BUY":
+				if float(entry_target1) <= float(item["high"]) or float(entry_target2) <= float(item["high"]):
+					if not closed_target1:
+						if float(entry_target1) <= float(item["high"]):
+							print "[+] REACHED TARGET-1 @ ", float(item["high"]) 
+							print "[+] PROFIT ", str(2500000 * (float(entry) - float(entry_target1)))
+							entry_stop = entry
+							print "[+] NEW STOP ", entry_stop
+							if exit1 == "":
+								exit1 = entry_target1	
+								item["exit1"] = exit1
+								profit_bp = float(exit1) - float(trade)
+								item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+								item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+							elif exit2 == "":
+								exit2 = entry_target2	
+								item["exit2"] = exit2
+								profit_bp = float(exit2) - float(trade)
+								item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+								item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+							print "[+] EXIT 1 @ ", exit1
+							print "[+] EXIT 2 @ ", exit2
+							closed_target1 = True
+							item["highlight"] = "warning"
+							continue
 
-				if not closed_target1:
-					if float(entry_target1) >= float(item["low"]):
-						print "[+] REACHED TARGET-1 @ ", float(item["low"]) 
-						print "[+] PROFIT ", str(2500000 * (float(entry) - float(entry_target1)))
-						entry_stop = entry
-						print "[+] NEW STOP ", entry_stop
-						if exit1 == "":
-							exit1 = entry_target1	
-							item["exit1"] = exit1
-							profit_bp = float(trade) - float(exit1)
-							item["profit_bp"] = "{0:.4f}".format(profit_bp) 
-							item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
-						elif exit2 == "":
-							exit2 = entry_target2	
-							item["exit2"] = exit2
-							profit_bp = float(trade) - float(exit2)
-							item["profit_bp"] = "{0:.4f}".format(profit_bp) 
-							item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
-						print "[+] EXIT 1 @ ", exit1
-						print "[+] EXIT 2 @ ", exit2
-						closed_target1 = True
-						item["highlight"] = "warning"
-
-				if not closed_target2:
-					if float(entry_target2) >= float(item["low"]):
-						print "[+] REACHED TARGET-2 @ ", float(item["low"]) 
-						print "[+] CHECK DATA:", entry, entry_target2
-						print "[+] PROFIT ", str(float(position)/2 * (float(entry) - float(entry_target2)))
-						entry_stop = entry
-						print "[+] NEW STOP ", entry_stop
-						if exit1 == "":
-							exit1 = entry_target1	
-							item["exit1"] = exit1
-							profit_bp = float(trade) - float(exit1)
-							item["profit_bp"] = "{0:.4f}".format(profit_bp) 
-							item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
-						elif exit2 == "":
-							exit2 = entry_target2	
-							item["exit2"] = exit2
-							profit_bp = float(trade) - float(exit2)
-							item["profit_bp"] = "{0:.4f}".format(profit_bp) 
-							item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
-						print "[+] EXIT 1 @ ", exit1
-						print "[+] EXIT 2 @ ", exit2
-						closed_target2 = True
-						item["highlight"] = "warning"
+					if not closed_target2:
+						if float(entry_target2) <= float(item["high"]):
+							print "[+] REACHED TARGET-2 @ ", float(item["high"]) 
+							print "[+] CHECK DATA:", entry, entry_target2
+							print "[+] PROFIT ", str(float(position)/2 * (float(entry) - float(entry_target2)))
+							entry_stop = entry
+							print "[+] NEW STOP ", entry_stop
+							if exit1 == "":
+								exit1 = entry_target1	
+								item["exit1"] = exit1
+								profit_bp = float(exit1) - float(trade)
+								item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+								item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+							elif exit2 == "":
+								exit2 = entry_target2	
+								item["exit2"] = exit2
+								profit_bp = float(exit2) - float(trade)
+								item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+								item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+							print "[+] EXIT 1 @ ", exit1
+							print "[+] EXIT 2 @ ", exit2
+							closed_target2 = True
+							item["highlight"] = "warning"			
 
 			if closed_target1 and closed_target2:
 				print "[+] ALL CLOSED"
@@ -240,10 +318,38 @@ def do_calc(coll, position=1000000):
 				entry_target1 = ""
 				entry_target2 = ""
 				exit1 = ""
-				exit2 = ""		
+				exit2 = ""
+				entry_action = ""
+				just_closed = True		
+
+				# if item["action"] == get_opposite_action(item["action"]):
+				# 	if item[idx - 1] == get_opposite_action(item["action"]):
+				# 		"""#case 3: opened at SELL, closed at BUY and prev is BUY as well -> open in the same closed"""
+				# 		item["highlight"] = "success"	
+				# 		entry = item["last_price"]
+				# 		entry_stop = item["stop1"]
+				# 		entry_target1 = item["target1"]
+				# 		entry_target2 = item["target2"]
+				# 		item["trades"] = entry
+				# 		trade = entry
+				# 		print "[+] Entry: ", entry_stop	
 
 		else:
+			# if just_closed:
+			# 	just_closed = False		
+			# 	if item["action"] == item[idx-1]: 
+			# 		#case 2: closed at SELL and next is SELL as well -> open at next
+			# 		item["highlight"] = "success"	
+			# 		entry = item["last_price"]
+			# 		entry_stop = item["stop1"]
+			# 		entry_target1 = item["target1"]
+			# 		entry_target2 = item["target2"]
+			# 		item["trades"] = entry
+			# 		trade = entry
+			# 		print "[+] Entry: ", entry_stop
+
 			if "marked" in item and item["marked"]:
+				entry_action = item["action"]
 				item["highlight"] = "success"
 				entry = item["last_price"]
 				entry_stop = item["stop1"]
@@ -252,8 +358,15 @@ def do_calc(coll, position=1000000):
 				item["trades"] = entry
 				trade = entry
 				print "[+] Entry: ", entry_stop
-
+	
 	return coll				
+
+
+def get_opposite_action(action):
+	if action == "SELL":
+		return "BUY"
+	if action == "BUY":	
+		return "SELL"
 
 #----------------------------------------
 # launch
