@@ -163,11 +163,11 @@ def do_calc(coll, position=1000000):
 	profit_bp = ""
 	just_closed = False
 	for idx, item in enumerate(coll):
+		print idx, item["date"], entry
 		if entry:
 			just_closed = False		
 			# STOPPED OUT, NO TARGETS
 			if entry_action == "SELL":
-				print "[+] Action: SELL"
 				if float(item["high"]) >= float(entry_stop):
 					print "[+] STOPPED OUT @ ", float(item["high"])
 					print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
@@ -188,9 +188,8 @@ def do_calc(coll, position=1000000):
 					closed_target2 = True	
 					just_closed = True
 			elif entry_action == "BUY":
-				print "[+] Action: BUY"
 				if float(item["low"]) <= float(entry_stop):
-					print "[+] STOPPED OUT @ ", float(item["high"])
+					print "[+] STOPPED OUT @ ", float(item["low"])
 					print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
 					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
 					print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
@@ -210,20 +209,20 @@ def do_calc(coll, position=1000000):
 					just_closed = True		
 
 			if entry_action == "SELL":		
-				if float(entry_target1) >= float(item["low"]) and float(entry_target2) >= float(item["low"]):
-					print "[+] REACHED ALL TARGETS IN ONE LINE ", float(item["low"]) 
-					exit1 = entry_target1	
-					item["exit1"] = exit1
-					exit2 = entry_target2	
-					profit_bp = float(exit1) - float(trade)
-					_total_profit = profit_bp * (float(position)/2)
-					item["exit2"] = exit2
-					profit_bp = float(exit1) - float(trade)
-					_total_profit += profit_bp * (float(position)/2)
-					item["profit_ccy"] = "{0:.4f}".format(_total_profit)
-					closed_target1 = True
-					closed_target2 = True
-					item["highlight"] = "warning"
+				if float(entry_target1) >= float(item["low"]) and float(entry_target2) >= float(item["low"]) and not closed_target1 and not closed_target2:
+						print "[+] REACHED ALL TARGETS IN ONE LINE ", float(item["low"]) 
+						exit1 = entry_target1	
+						item["exit1"] = exit1
+						exit2 = entry_target2	
+						profit_bp = float(exit1) - float(trade)
+						_total_profit = profit_bp * (float(position)/2)
+						item["exit2"] = exit2
+						profit_bp = float(exit1) - float(trade)
+						_total_profit += profit_bp * (float(position)/2)
+						item["profit_ccy"] = "{0:.4f}".format(_total_profit)
+						closed_target1 = True
+						closed_target2 = True
+						item["highlight"] = "warning"
 				else:		
 					if float(entry_target1) >= float(item["low"]) or float(entry_target2) >= float(item["low"]):
 						if not closed_target1:
@@ -272,9 +271,10 @@ def do_calc(coll, position=1000000):
 								print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
 								item["highlight"] = "warning"
+								just_closed = closed_target1 and closed_target2					
 
 			elif entry_action == "BUY":
-				if float(entry_target1) <= float(item["high"]) and float(entry_target2) <= float(item["high"]):
+				if float(entry_target1) <= float(item["high"]) and float(entry_target2) <= float(item["high"]) and not closed_target1 and not closed_target2:
 					print "[+] REACHED ALL TARGETS IN ONE LINE ", float(item["high"]) 
 					exit1 = entry_target1	
 					item["exit1"] = exit1
@@ -312,7 +312,6 @@ def do_calc(coll, position=1000000):
 								print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
 								item["highlight"] = "warning"
-								continue
 
 						if not closed_target2:
 							if float(entry_target2) <= float(item["high"]):
@@ -336,7 +335,8 @@ def do_calc(coll, position=1000000):
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
-								item["highlight"] = "warning"			
+								item["highlight"] = "warning"
+								just_closed = closed_target1 and closed_target2					
 
 			if closed_target1 and closed_target2:
 				print "[+] ALL CLOSED"
@@ -351,33 +351,38 @@ def do_calc(coll, position=1000000):
 				entry_action = ""
 				just_closed = True		
 
-				# if item["action"] == get_opposite_action(item["action"]):
-				# 	if item[idx - 1] == get_opposite_action(item["action"]):
-				# 		"""#case 3: opened at SELL, closed at BUY and prev is BUY as well -> open in the same closed"""
-				# 		item["highlight"] = "success"	
-				# 		entry = item["last_price"]
-				# 		entry_stop = item["stop1"]
-				# 		entry_target1 = item["target1"]
-				# 		entry_target2 = item["target2"]
-				# 		item["trades"] = entry
-				# 		trade = entry
-				# 		print "[+] Entry: ", entry_stop	
+				if item["action"] == get_opposite_action(item["action"]):
+					if coll[idx - 1]["action"] == get_opposite_action(item["action"]):
+						"""#case 3: opened at SELL, closed at BUY and prev is BUY as well -> open in the same closed"""
+						item["highlight"] = "success"	
+						entry = item["last_price"]
+						entry_stop = item["stop1"]
+						entry_target1 = item["target1"]
+						entry_target2 = item["target2"]
+						item["trades"] = entry
+						trade = entry
+						print "[+] Entry: ", entry_stop	
 
 		else:
-			# if just_closed:
-			# 	just_closed = False		
-			# 	if item["action"] == item[idx-1]: 
-			# 		#case 2: closed at SELL and next is SELL as well -> open at next
-			# 		item["highlight"] = "success"	
-			# 		entry = item["last_price"]
-			# 		entry_stop = item["stop1"]
-			# 		entry_target1 = item["target1"]
-			# 		entry_target2 = item["target2"]
-			# 		item["trades"] = entry
-			# 		trade = entry
-			# 		print "[+] Entry: ", entry_stop
+			if just_closed:
+				print "[+] JUST CLOSED"
+				just_closed = False		
+				print "[+] JUST CLOSED: ", item["action"], coll[idx-1]["action"] 
+				if item["action"] != "" and item["action"] == coll[idx-1]["action"]: 
+					"""case 2: closed at SELL and next is SELL as well -> open at next"""
+					item["highlight"] = "success"	
+					entry_action = item["action"]
+					entry = item["last_price"]
+					entry_stop = item["stop1"]
+					entry_target1 = item["target1"]
+					entry_target2 = item["target2"]
+					item["trades"] = entry
+					trade = entry
+					print "[+] Entry Stop: ", entry_stop
+					print "[+]: ", idx, len(coll)
+					print "[+] Entry: ", entry
 
-			if "marked" in item and item["marked"]:
+			if entry == "" and  "marked" in item and item["marked"]:
 				entry_action = item["action"]
 				item["highlight"] = "success"
 				entry = item["last_price"]
