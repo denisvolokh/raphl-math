@@ -191,9 +191,9 @@ def do_calc(coll, position=1000000):
 				if float(item["low"]) <= float(entry_stop):
 					print "[+] STOPPED OUT @ ", float(item["low"])
 					print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
-					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
-					print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
-					item["profit_ccy"] = "{0:.4f}".format((float(entry) - float(entry_stop)) * float(position))
+					item["profit_bp"] = "{0:.4f}".format(float(entry_stop) - float(entry)) 
+					print "[+] PROFIT(ccy) ", (float(entry_stop) - float(entry)) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format((float(entry_stop) - float(entry)) * float(position))
 					entry = ""
 					item["highlight"] = "error"
 					if exit1 == "":
@@ -214,10 +214,10 @@ def do_calc(coll, position=1000000):
 						exit1 = entry_target1	
 						item["exit1"] = exit1
 						exit2 = entry_target2	
-						profit_bp = float(exit1) - float(trade)
+						profit_bp = float(trade) - float(exit1)
 						_total_profit = profit_bp * (float(position)/2)
 						item["exit2"] = exit2
-						profit_bp = float(exit1) - float(trade)
+						profit_bp = float(trade) - float(exit2)
 						_total_profit += profit_bp * (float(position)/2)
 						item["profit_ccy"] = "{0:.4f}".format(_total_profit)
 						closed_target1 = True
@@ -282,7 +282,7 @@ def do_calc(coll, position=1000000):
 					profit_bp = float(exit1) - float(trade)
 					_total_profit = profit_bp * (float(position)/2)
 					item["exit2"] = exit2
-					profit_bp = float(exit1) - float(trade)
+					profit_bp = float(exit2) - float(trade)
 					_total_profit += profit_bp * (float(position)/2)
 					item["profit_ccy"] = "{0:.4f}".format(_total_profit)
 					closed_target1 = True
