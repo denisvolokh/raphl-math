@@ -1,6 +1,6 @@
 
 import os
-from flask import Flask, request, redirect, render_template, send_from_directory
+from flask import Flask, Response, request, redirect, render_template, send_from_directory
 import csv
 from urlparse import urlparse
 from pymongo import MongoClient
@@ -51,6 +51,26 @@ def list_records():
 
 	return dumps(dict(file=file, result=list(marked)))
 
+@app.route("/api/export", methods=["GET", "POST"])
+def export():
+	id = request.args["dataset_id"]
+	position = request.args["position"]
+
+	file = db["files"].find_one({"_id": ObjectId(id)})
+	records = db["records"].find({"file_id" : str(id)})
+	
+	marked = mark_records_buy_action(records, "SELL")
+	marked = mark_records_buy_action(marked, "BUY")
+
+	calculated = do_calc(marked, position)
+	
+	
+
+	return Response(data, 
+					mimetype="text/csv",
+                    headers={"Content-Disposition":
+                             "attachment;filename=" + file["name"] + ".csv"})
+
 
 @app.route("/api/calc", methods=["GET", "POST"])
 def calc():
@@ -65,7 +85,7 @@ def calc():
 
 	calculated = do_calc(marked, position)
 	
-	return dumps(dict(file=file, result=list(marked)))	
+	return dumps(dict(file=file, result=list(calculated)))	
 
 
 @app.route('/listfiles', methods=['GET', 'POST'])
@@ -91,32 +111,40 @@ def upload_file():
 			given_name = file.filename	
     	print "[+] Custom name: ", given_name
     	if file and allowed_file(file.filename):
-        	_file = {
-        		"name": given_name
-        	}
-        	file_id = db["files"].insert(_file)
-        	for row in csv.DictReader(file.stream):
+			_file = {
+				"name": given_name
+			}
+			file_id = db["files"].insert(_file)
+			rows = []
+			for row in csv.DictReader(file.stream):
     				if row["Date/Time"] != "":
-    					record = {
-    						"file_id": str(file_id),
-    						"date" : row["Date/Time"],
-    						"open" : row["OPEN"],
-    						"high" : row["HIGH"],
-    						"low" : row["LOW"],
-    						"last_price" : row["LAST_PRICE"],
-    						"action" : row["Action"],
-    						"vol" : row["Vol"],
-    						"stop1" : row["STOP1"],
-    						"target1" : row["Target 1"],
-    						"target2" : row["Target 2"],
-    						"profit_bp": "",
-    						"profit_ccy": "",
-    						"trades": "",
-    						"exit1": "",
-    						"exit2": ""
-    					}
-    					print record
-    					db["records"].insert(record)
+						record = {
+							"file_id": str(file_id),
+							"date" : row["Date/Time"],
+							"open" : row["OPEN"],
+							"high" : row["HIGH"],
+							"low" : row["LOW"],
+							"last_price" : row["LAST_PRICE"],
+							"action" : row["Action"],
+							"vol" : row["Vol"],
+							"stop1" : row["STOP1"],
+							"target1" : row["Target 1"],
+							"target2" : row["Target 2"],
+							"profit_bp": "",
+							"profit_ccy": "",
+							"trades": "",
+							"exit1": "",
+							"exit2": "",
+							"balance": 0
+						}
+						rows.append(record)
+			db["records"].insert(rows)
+
+			print "[+] BULK INSERT: ", len(rows)
+			print rows[0]
+			print rows[len(rows) - 1]
+			
+
 	return ""
 
 @app.route("/")
@@ -161,6 +189,7 @@ def do_calc(coll, position=1000000):
 	closed_target1 = False
 	closed_target2 = False
 	profit_bp = ""
+	balance = 0
 	just_closed = False
 	for idx, item in enumerate(coll):
 		print idx, item["date"], entry
@@ -174,6 +203,8 @@ def do_calc(coll, position=1000000):
 					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
 					print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
 					item["profit_ccy"] = "{0:.4f}".format((float(entry) - float(entry_stop)) * float(position))
+					balance += (float(entry) - float(entry_stop)) * float(position)
+					# item["balance"] = str(balance)
 					entry = ""
 					item["highlight"] = "error"
 					if exit1 == "":
@@ -194,6 +225,8 @@ def do_calc(coll, position=1000000):
 					item["profit_bp"] = "{0:.4f}".format(float(entry_stop) - float(entry)) 
 					print "[+] PROFIT(ccy) ", (float(entry_stop) - float(entry)) * float(position)
 					item["profit_ccy"] = "{0:.4f}".format((float(entry_stop) - float(entry)) * float(position))
+					balance += (float(entry_stop) - float(entry)) * float(position)
+					# item["balance"] = str(balance)
 					entry = ""
 					item["highlight"] = "error"
 					if exit1 == "":
@@ -220,6 +253,8 @@ def do_calc(coll, position=1000000):
 						profit_bp = float(trade) - float(exit2)
 						_total_profit += profit_bp * (float(position)/2)
 						item["profit_ccy"] = "{0:.4f}".format(_total_profit)
+						balance += _total_profit
+						# item["balance"] = str(balance)
 						closed_target1 = True
 						closed_target2 = True
 						item["highlight"] = "warning"
@@ -237,12 +272,16 @@ def do_calc(coll, position=1000000):
 									profit_bp = float(trade) - float(exit1)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+									balance += profit_bp * (float(position)/2)
+									# item["balance"] = str(balance)
 								elif exit2 == "":
 									exit2 = entry_target2	
 									item["exit2"] = exit2
 									profit_bp = float(trade) - float(exit2)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+									balance += profit_bp * (float(position)/2)
+									# item["balance"] = str(balance)
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
@@ -261,12 +300,16 @@ def do_calc(coll, position=1000000):
 									profit_bp = float(trade) - float(exit1)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+									balance += profit_bp * (float(position)/2)
+									# item["balance"] = str(balance)
 								elif exit2 == "":
 									exit2 = entry_target2	
 									item["exit2"] = exit2
 									profit_bp = float(trade) - float(exit2)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+									balance += profit_bp * (float(position)/2)
+									# item["balance"] = str(balance)
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
@@ -285,6 +328,8 @@ def do_calc(coll, position=1000000):
 					profit_bp = float(exit2) - float(trade)
 					_total_profit += profit_bp * (float(position)/2)
 					item["profit_ccy"] = "{0:.4f}".format(_total_profit)
+					balance += _total_profit
+					# item["balance"] = str(balance)
 					closed_target1 = True
 					closed_target2 = True
 					item["highlight"] = "warning"
@@ -302,12 +347,16 @@ def do_calc(coll, position=1000000):
 									profit_bp = float(exit1) - float(trade)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+									balance += profit_bp * (float(position)/2)
+									# item["balance"] = str(balance)
 								elif exit2 == "":
 									exit2 = entry_target2	
 									item["exit2"] = exit2
 									profit_bp = float(exit2) - float(trade)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+									balance += profit_bp * (float(position)/2)
+									# item["balance"] = str(balance)
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
@@ -326,12 +375,16 @@ def do_calc(coll, position=1000000):
 									profit_bp = float(exit1) - float(trade)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+									balance += profit_bp * (float(position)/2)
+									# item["balance"] = str(balance)
 								elif exit2 == "":
 									exit2 = entry_target2	
 									item["exit2"] = exit2
 									profit_bp = float(exit2) - float(trade)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
+									balance += profit_bp * (float(position)/2)
+									# item["balance"] = str(balance)
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
@@ -392,6 +445,8 @@ def do_calc(coll, position=1000000):
 				item["trades"] = entry
 				trade = entry
 				print "[+] Entry: ", entry_stop
+
+		item["balance"] = str(balance)		
 	
 	return coll				
 

@@ -30,6 +30,19 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 		}	
 	}
 
+	$rootScope.doExportData = function() {
+		if (angular.isDefined($routeParams["id"])) {
+			$rootScope.root.loading = true;
+			$log.info($scope.position);
+			var pos = Number($rootScope.root.position);
+			$http.get("/api/export?dataset_id=" + $routeParams["id"] + "&position=" + pos)
+				.success(function(data) {
+					$rootScope.root.loading = false;
+					alert("Here is file.")
+				})
+		}	
+	}
+
 	$scope.getRecordClass = function(item) {
 		return item.highlight
 	}
