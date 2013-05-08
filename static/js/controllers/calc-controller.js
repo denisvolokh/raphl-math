@@ -3,15 +3,28 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 	$scope.position = 1;
 	$rootScope.root.loading = true;
 	$rootScope.root.showCalcPanel = true;
+	$scope.page = 1
+	$scope.pages = 0;
+	$scope.records = [];
+	$scope.calc_hash = "";
 
 	$scope.listRecords = function() {
 		if (angular.isDefined($routeParams["id"])) {
 			$rootScope.root.loading = true;
-			$http.get("/listrecords?dataset_id=" + $routeParams["id"])
+			$http.get("/listrecords?dataset_id=" + $routeParams["id"] + "&page=" + $scope.page + "&calc_hash=" + $scope.calc_hash)
 				.success(function(data) {
-					$scope.records = data.result;
 					$rootScope.root.selectedFile = data.file.name;
 					$rootScope.root.loading = false;
+
+					if ($scope.records.length > 0) {
+						angular.forEach(data.result, function(item) {
+							$scope.records.push(item);	
+						})
+					} else {
+						$scope.records = data.result;
+					}
+					// $log.info("[+]", $scope.records)
+					$scope.pages = data.pages;
 				})
 		}	
 	}
@@ -20,10 +33,11 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 		if (angular.isDefined($routeParams["id"])) {
 			$rootScope.root.loading = true;
 			$log.info($scope.position);
+			$scope.page = 1;
 			var pos = Number($rootScope.root.position);
-			$http.get("/api/calc?dataset_id=" + $routeParams["id"] + "&position=" + pos)
+			$http.get("/api/calc?dataset_id=" + $routeParams["id"] + "&position=" + pos + "&page=" + $scope.page + "&calc_hash=" + $scope.calc_hash)
 				.success(function(data) {
-					$scope.records = data.result;
+					$scope.pages = data.pages;
 					$scope.trades_counter = data.trades_counter;
 					$scope.min = data.min;
 					$scope.max = data.max;
@@ -31,22 +45,23 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 					$scope.sum_profit_loss = data.sum_profit_loss;
 					$rootScope.root.selectedFile = data.file.name;
 					$rootScope.root.loading = false;
+
+					$scope.calc_hash = data.calc_hash;	
+					$scope.records = data.result;
 				})
 		}	
 	}
 
+	$scope.loadMore = function() {
+		$scope.page += 1;
+
+		$scope.listRecords();	 
+	}
+
 	$rootScope.doExportData = function() {
 		if (angular.isDefined($routeParams["id"])) {
-			// $rootScope.root.loading = true;
 			var pos = Number($rootScope.root.position);
 			$.fileDownload("/api/export?dataset_id=" + $routeParams["id"] + "&position=" + pos);
-			// $log.info($scope.position);
-			
-			// $http.get("/api/export?dataset_id=" + $routeParams["id"] + "&position=" + pos)
-			// 	.success(function(data) {
-			// 		$rootScope.root.loading = false;
-			// 		alert("Here is file.")
-			// 	})
 		}	
 	}
 

@@ -1,14 +1,26 @@
 <div class="container-fluid">
 	<div class="row-fluid">
-		<div class="span3">
-			<ul class="nav nav-list well">
+		<div class="span3 well">
+			<div ng-repeat="item in datasets">
+				<p>
+					<a href="#/calc/{[{item._id.$oid}]}">
+						<span class="label label-info">
+							{[{item.name}]}
+						</span>
+					</a>
+					<span class="pull-right">
+						<a href="" ng-click="removeFile(item)"><i class="icon-remove"></i></a>
+					</span>
+				</p>
+			</div>
+			<!-- <ul class="well">
 				<li class="nav-header">
 					Original Data
 				</li>
 				<li ng-repeat="item in datasets">
 					<a href="#/calc/{[{item._id.$oid}]}">{[{item.name}]}</a>
 				</li>
-			</ul>
+			</ul> -->
 		</div>
 		
 		<div class="span9">
@@ -43,8 +55,8 @@
 				      <!-- Submit -->
 				      <div class="control-group">
 				        <div class="controls">
-				          <button class="btn btn-success"
-				          	ng-show="readyToUpload">Upload</button>
+				          <button class="btn btn-success" ng-show="!uploading">Upload</button>
+				          <button class="btn btn-important" ng-disabled="true" ng-show="uploading">Uploading ...</button>
 				        </div>
 				      </div>
 				 

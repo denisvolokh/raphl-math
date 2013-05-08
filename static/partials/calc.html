@@ -128,5 +128,10 @@
 				</tr>
 			</tbody>
 		</table>
+		<div class="well" ng-hide="pages == 0">
+			{[{page}]} of {[{pages}]}
+			<span class="btn btn-warning pull-right" ng-disabled="root.loading" ng-show="root.loading">Loading...</span>
+			<span class="btn btn-info pull-right" ng-hide="root.loading" ng-click="loadMore()">Load more >></span>
+		</div>
 	</div>
 </div>		

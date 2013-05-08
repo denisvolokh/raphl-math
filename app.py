@@ -12,6 +12,8 @@ import StringIO
 import mimetypes
 from dateutil import parser
 from werkzeug.datastructures import Headers
+import datetime
+import hashlib
 
 #----------------------------------------
 # initialization
@@ -24,6 +26,7 @@ app.config.update(
 )
 
 ALLOWED_EXTENSIONS = set(['csv',])
+PAGE_OFFSET = 20
 
 # mongodb://localhost/raphl-math
 database = os.environ.get("MONGOHQ_URL", "")
@@ -41,19 +44,55 @@ print db.collection_names()
 # controllers
 #----------------------------------------
 
+# @app.route('/listfiles', methods=['GET', 'POST'])
+# def list_files():
+# 	files = db["files"].find()
+# 	# print "[+] ", files.count()
+# 	return dumps(list(files))
+
+@app.route('/api/removefile', methods=['GET', 'POST'])
+def removefile():
+	id = request.args["file_id"]
+
+	db["calculus"].remove({"file_id" : str(id)})
+	db["records"].remove({"file_id": str(id)})
+	db["files"].remove({"_id" : ObjectId(id)})
+
+	files = db["files"].find()
+
+	return dumps(list(files))
+
 @app.route('/listrecords', methods=['GET', 'POST'])
 def list_records():
 	id = request.args["dataset_id"]
-
+	page = int(request.args["page"])
+	calc_hash = request.args["calc_hash"]
 	file = db["files"].find_one({"_id": ObjectId(id)})
-	records = db["records"].find({"file_id" : str(id)})
-	
-	marked = mark_records_buy_action(records, "SELL")
-	marked = mark_records_buy_action(marked, "BUY")
 
-	print marked
+	if calc_hash != "":
+		count_records = db.command({
+				"count":"calculus",
+				"query": {
+					"calc_hash" : calc_hash
+				}
+			}
+		)
+		records = db["calculus"].find({"calc_hash" : calc_hash}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
+		# total_pages = int(count_records["n"]) / num
+	else:	
+		count_records = db.command({
+				"count":"records",
+				"query": {
+					"file_id" : str(id)			
+				}
+			}
+		)
+		records = db["records"].find({"file_id" : str(id)}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
+		# total_pages = int(count_records["n"]) / num
 
-	return dumps(dict(file=file, result=list(marked)))
+	total_pages = int(count_records["n"]) / PAGE_OFFSET
+
+	return dumps(dict(file=file, result=list(records), pages=total_pages))
 
 @app.route("/api/export", methods=["GET", "POST"])
 def export():
@@ -72,6 +111,15 @@ def export():
 	response.status_code = 200
 
 	output = StringIO.StringIO()
+
+	summary_header = ["NUMBER OF TRADES","PnL","BPs","MIN","MAX"]
+	output.write(",".join(summary_header))
+	output.write("\n")
+	sums = [str(calculated["trades_counter"]), calculated["sum_profit_loss"], calculated["sum_profit_bp"], calculated["min"], calculated["max"]]
+	output.write(",".join(sums))
+	output.write("\n")
+	output.write("\n")
+
 	table_header = ["DATE","OPEN","HIGH","LOW","LAST_PRICE","ACTION","VOL","STOP1","TARGET-1","TARGET-2","TRADES","EXIT 1","EXIT 2", "PROFIT (bp)","PROFIT (ccy)","BALANCE (ccy)"]
 	output.write(",".join(table_header))
 	output.write("\n")
@@ -127,27 +175,16 @@ def export():
     #################################
 	return response
 
-	# resultFile = open('/tmp/myfile.csv','wb')
-	# # copyfileobj(pilImage,tempFileObj)
-	# resultFile.close()
-
-	# # return send_file(resultFile)
-
-	# # try:
-	# # 	return send_file(resultFile)
-	# # except:
-	# # 	abort(404)	
-
-	# return Response(resultFile, 
-	# 				mimetype="text/csv",
- #                    headers={"Content-Disposition":
- #                             "attachment;filename=123.csv"})
-
 
 @app.route("/api/calc", methods=["GET", "POST"])
 def calc():
 	id = request.args["dataset_id"]
 	position = request.args["position"]
+	
+	calc_hash = request.args["calc_hash"]
+	if calc_hash != "":
+		print "[+] CLEANING BEFORE NEW CALC"
+		db["calculus"].remove({"calc_hash":calc_hash})
 
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
@@ -156,20 +193,71 @@ def calc():
 	marked = mark_records_buy_action(marked, "BUY")
 
 	calculated = do_calc(marked, position)
+
+	print "[+] FILE ID", str(file["_id"])
+
+	calc_hash = hashlib.sha512(str(datetime.datetime.utcnow())).hexdigest()[:11]
+	calculus = []
+	for item in calculated["result"]:
+		calc_item = {
+			"file_id" : str(file["_id"]),
+			"trades_counter" : calculated["trades_counter"],
+			"max" : calculated["max"],
+			"min" : calculated["min"],
+			"sum_profit_bp" : calculated["sum_profit_bp"],
+			"sum_profit_loss" : calculated["sum_profit_loss"],
+			"calc_hash" : calc_hash,
+			"date" : item["date"],
+			"open" : item["open"],
+			"high" : item["high"],
+			"low" : item["low"],
+			"last_price" : item["last_price"],
+			"action" : item["action"],
+			"vol" : item["vol"],
+			"stop1" : item["stop1"],
+			"target1" : item["target1"],
+			"target2" : item["target2"],
+			"profit_bp": item["profit_bp"],
+			"profit_ccy": item["profit_ccy"],
+			"trades": item["trades"],
+			"exit1": item["exit1"],
+			"exit2": item["exit2"],
+			"balance": item["balance"]
+		}
+		if "highlight" in item:
+			calc_item["highlight"] = item["highlight"]
+		calculus.append(calc_item)
+		# item["file_id"] = str(file["_id"])
+		# item["trades_counter"] = calculated["trades_counter"]
+		# item["max"] = calculated["max"]
+		# item["min"] = calculated["min"]
+		# item["sum_profit_bp"] = calculated["sum_profit_bp"]
+		# item["sum_profit_loss"] = calculated["sum_profit_loss"]
+		# item["calc_hash"] = calc_hash
+		# db["calculus"].insert(item)	
+
+	print calculated["result"][0]	
+	db["calculus"].insert(calculus)	
+	total_pages = len(calculus) / PAGE_OFFSET
+	
+	first_page = db["calculus"].find({"calc_hash" : calc_hash}).skip(0).limit(PAGE_OFFSET)
 	
 	return dumps(dict(file=file, 
-						result=list(calculated["result"]), 
+						result=list(first_page), 
 						trades_counter=calculated["trades_counter"],
 						max=calculated["max"],
 						min=calculated["min"],
 						sum_profit_bp=calculated["sum_profit_bp"],
-						sum_profit_loss=calculated["sum_profit_loss"]))	
+						sum_profit_loss=calculated["sum_profit_loss"],
+						calc_hash=calc_hash,
+						pages=total_pages))	
 
 
 @app.route('/listfiles', methods=['GET', 'POST'])
 def list_files():
+	"""Print all records from collection FILES"""
 	files = db["files"].find()
-	# print "[+] ", files.count()
+	
 	return dumps(list(files))
 
 def allowed_file(filename):
@@ -216,12 +304,7 @@ def upload_file():
 							"balance": 0
 						}
 						rows.append(record)
-			db["records"].insert(rows)
-
-			print "[+] BULK INSERT: ", len(rows)
-			print rows[0]
-			print rows[len(rows) - 1]
-			
+			db["records"].insert(rows)			
 
 	return ""
 
@@ -230,10 +313,6 @@ def index():
     return render_template('index.html')
 
 def mark_records_buy_action(collection, action="SELL"):
-	# opp_action = "BUY"
-	# if action == "BUY":
-	# 	opp_action = "SELL"
-
 	skip_subsequent_flag = False			
 	_coll = []
 
