@@ -1,6 +1,6 @@
 
 import os
-from flask import Flask, Response, request, redirect, render_template, send_from_directory
+from flask import Flask, Response, request, redirect, render_template, send_from_directory, send_file
 import csv
 from urlparse import urlparse
 from pymongo import MongoClient
@@ -64,12 +64,21 @@ def export():
 
 	calculated = do_calc(marked, position)
 	
-	
+	resultFile = open('/tmp/myfile.csv','wb')
+	# copyfileobj(pilImage,tempFileObj)
+	resultFile.close()
 
-	return Response(data, 
+	# return send_file(resultFile)
+
+	# try:
+	# 	return send_file(resultFile)
+	# except:
+	# 	abort(404)	
+
+	return Response(resultFile, 
 					mimetype="text/csv",
                     headers={"Content-Disposition":
-                             "attachment;filename=" + file["name"] + ".csv"})
+                             "attachment;filename=123.csv"})
 
 
 @app.route("/api/calc", methods=["GET", "POST"])
@@ -85,7 +94,13 @@ def calc():
 
 	calculated = do_calc(marked, position)
 	
-	return dumps(dict(file=file, result=list(calculated)))	
+	return dumps(dict(file=file, 
+						result=list(calculated["result"]), 
+						trades_counter=calculated["trades_counter"],
+						max=calculated["max"],
+						min=calculated["min"],
+						sum_profit_bp=calculated["sum_profit_bp"],
+						sum_profit_loss=calculated["sum_profit_loss"]))	
 
 
 @app.route('/listfiles', methods=['GET', 'POST'])
@@ -191,6 +206,11 @@ def do_calc(coll, position=1000000):
 	profit_bp = ""
 	balance = 0
 	just_closed = False
+	trades_counter = 0
+	min_balance = 0
+	max_balance = 0
+	sum_profit_bp = 0
+	sum_profit_loss = 0
 	for idx, item in enumerate(coll):
 		print idx, item["date"], entry
 		if entry:
@@ -198,13 +218,19 @@ def do_calc(coll, position=1000000):
 			# STOPPED OUT, NO TARGETS
 			if entry_action == "SELL":
 				if float(item["high"]) >= float(entry_stop):
-					print "[+] STOPPED OUT @ ", float(item["high"])
-					print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
+					# print "[+] STOPPED OUT @ ", float(item["high"])
+					# print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
 					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
-					print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
-					item["profit_ccy"] = "{0:.4f}".format((float(entry) - float(entry_stop)) * float(position))
-					balance += (float(entry) - float(entry_stop)) * float(position)
-					# item["balance"] = str(balance)
+					sum_profit_bp += float(entry) - float(entry_stop)
+					# print "[+] PROFIT(ccy) ", (float(entry) - float(entry_stop)) * float(position)
+					pl = (float(entry) - float(entry_stop)) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format(pl)
+					sum_profit_loss += pl
+					balance += pl
+					if balance >= max_balance:
+						max_balance = balance
+					if balance <= min_balance:
+						min_balance = balance	
 					entry = ""
 					item["highlight"] = "error"
 					if exit1 == "":
@@ -220,13 +246,19 @@ def do_calc(coll, position=1000000):
 					just_closed = True
 			elif entry_action == "BUY":
 				if float(item["low"]) <= float(entry_stop):
-					print "[+] STOPPED OUT @ ", float(item["low"])
-					print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
+					# print "[+] STOPPED OUT @ ", float(item["low"])
+					# print "[+] PROFIT(bp) ", float(entry) - float(entry_stop)
 					item["profit_bp"] = "{0:.4f}".format(float(entry_stop) - float(entry)) 
-					print "[+] PROFIT(ccy) ", (float(entry_stop) - float(entry)) * float(position)
-					item["profit_ccy"] = "{0:.4f}".format((float(entry_stop) - float(entry)) * float(position))
-					balance += (float(entry_stop) - float(entry)) * float(position)
-					# item["balance"] = str(balance)
+					sum_profit_bp += float(entry_stop) - float(entry) 
+					# print "[+] PROFIT(ccy) ", (float(entry_stop) - float(entry)) * float(position)
+					pl = (float(entry_stop) - float(entry)) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format(pl)
+					sum_profit_loss += pl
+					balance += pl
+					if balance >= max_balance:
+						max_balance = balance
+					if balance <= min_balance:
+						min_balance = balance	
 					entry = ""
 					item["highlight"] = "error"
 					if exit1 == "":
@@ -248,13 +280,19 @@ def do_calc(coll, position=1000000):
 						item["exit1"] = exit1
 						exit2 = entry_target2	
 						profit_bp = float(trade) - float(exit1)
+						sum_profit_bp += profit_bp
 						_total_profit = profit_bp * (float(position)/2)
 						item["exit2"] = exit2
 						profit_bp = float(trade) - float(exit2)
+						sum_profit_bp += profit_bp
 						_total_profit += profit_bp * (float(position)/2)
 						item["profit_ccy"] = "{0:.4f}".format(_total_profit)
 						balance += _total_profit
-						# item["balance"] = str(balance)
+						sum_profit_loss += _total_profit
+						if balance >= max_balance:
+							max_balance = balance
+						if balance <= min_balance:
+							min_balance = balance	
 						closed_target1 = True
 						closed_target2 = True
 						item["highlight"] = "warning"
@@ -271,17 +309,27 @@ def do_calc(coll, position=1000000):
 									item["exit1"] = exit1
 									profit_bp = float(trade) - float(exit1)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+									sum_profit_bp += profit_bp
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
 									balance += profit_bp * (float(position)/2)
-									# item["balance"] = str(balance)
+									sum_profit_loss += profit_bp * (float(position)/2)
+									if balance >= max_balance:
+										max_balance = balance
+									if balance <= min_balance:
+										min_balance = balance	
 								elif exit2 == "":
 									exit2 = entry_target2	
 									item["exit2"] = exit2
 									profit_bp = float(trade) - float(exit2)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+									sum_profit_bp += profit_bp
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
 									balance += profit_bp * (float(position)/2)
-									# item["balance"] = str(balance)
+									sum_profit_loss += profit_bp * (float(position)/2)
+									if balance >= max_balance:
+										max_balance = balance
+									if balance <= min_balance:
+										min_balance = balance	
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
@@ -299,17 +347,27 @@ def do_calc(coll, position=1000000):
 									item["exit1"] = exit1
 									profit_bp = float(trade) - float(exit1)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+									sum_profit_bp += profit_bp
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
 									balance += profit_bp * (float(position)/2)
-									# item["balance"] = str(balance)
+									sum_profit_loss += profit_bp * (float(position)/2)
+									if balance >= max_balance:
+										max_balance = balance
+									if balance <= min_balance:
+										min_balance = balance	
 								elif exit2 == "":
 									exit2 = entry_target2	
 									item["exit2"] = exit2
 									profit_bp = float(trade) - float(exit2)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+									sum_profit_bp += profit_bp
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
 									balance += profit_bp * (float(position)/2)
-									# item["balance"] = str(balance)
+									sum_profit_loss += profit_bp * (float(position)/2)
+									if balance >= max_balance:
+										max_balance = balance
+									if balance <= min_balance:
+										min_balance = balance	
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
@@ -323,13 +381,19 @@ def do_calc(coll, position=1000000):
 					item["exit1"] = exit1
 					exit2 = entry_target2	
 					profit_bp = float(exit1) - float(trade)
+					sum_profit_bp += profit_bp
 					_total_profit = profit_bp * (float(position)/2)
 					item["exit2"] = exit2
 					profit_bp = float(exit2) - float(trade)
+					sum_profit_bp += profit_bp
 					_total_profit += profit_bp * (float(position)/2)
 					item["profit_ccy"] = "{0:.4f}".format(_total_profit)
 					balance += _total_profit
-					# item["balance"] = str(balance)
+					sum_profit_loss += _total_profit
+					if balance >= max_balance:
+						max_balance = balance
+					if balance <= min_balance:
+						min_balance = balance	
 					closed_target1 = True
 					closed_target2 = True
 					item["highlight"] = "warning"
@@ -346,17 +410,27 @@ def do_calc(coll, position=1000000):
 									item["exit1"] = exit1
 									profit_bp = float(exit1) - float(trade)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+									sum_profit_bp += profit_bp
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
 									balance += profit_bp * (float(position)/2)
-									# item["balance"] = str(balance)
+									sum_profit_loss += profit_bp * (float(position)/2)
+									if balance >= max_balance:
+										max_balance = balance
+									if balance <= min_balance:
+										min_balance = balance	
 								elif exit2 == "":
 									exit2 = entry_target2	
 									item["exit2"] = exit2
 									profit_bp = float(exit2) - float(trade)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+									sum_profit_bp += profit_bp
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
 									balance += profit_bp * (float(position)/2)
-									# item["balance"] = str(balance)
+									sum_profit_loss += profit_bp * (float(position)/2)
+									if balance >= max_balance:
+										max_balance = balance
+									if balance <= min_balance:
+										min_balance = balance	
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
@@ -374,17 +448,27 @@ def do_calc(coll, position=1000000):
 									item["exit1"] = exit1
 									profit_bp = float(exit1) - float(trade)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+									sum_profit_bp += profit_bp
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
 									balance += profit_bp * (float(position)/2)
-									# item["balance"] = str(balance)
+									sum_profit_loss += profit_bp * (float(position)/2)
+									if balance >= max_balance:
+										max_balance = balance
+									if balance <= min_balance:
+										min_balance = balance	
 								elif exit2 == "":
 									exit2 = entry_target2	
 									item["exit2"] = exit2
 									profit_bp = float(exit2) - float(trade)
 									item["profit_bp"] = "{0:.4f}".format(profit_bp) 
+									sum_profit_bp += profit_bp
 									item["profit_ccy"] = "{0:.4f}".format(profit_bp * (float(position)/2))
 									balance += profit_bp * (float(position)/2)
-									# item["balance"] = str(balance)
+									sum_profit_loss += profit_bp * (float(position)/2)
+									if balance >= max_balance:
+										max_balance = balance
+									if balance <= min_balance:
+										min_balance = balance	
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
@@ -413,6 +497,7 @@ def do_calc(coll, position=1000000):
 						entry_target1 = item["target1"]
 						entry_target2 = item["target2"]
 						item["trades"] = entry
+						trades_counter += 1
 						trade = entry
 						print "[+] Entry: ", entry_stop	
 
@@ -430,6 +515,7 @@ def do_calc(coll, position=1000000):
 					entry_target1 = item["target1"]
 					entry_target2 = item["target2"]
 					item["trades"] = entry
+					trades_counter += 1
 					trade = entry
 					print "[+] Entry Stop: ", entry_stop
 					print "[+]: ", idx, len(coll)
@@ -443,12 +529,18 @@ def do_calc(coll, position=1000000):
 				entry_target1 = item["target1"]
 				entry_target2 = item["target2"]
 				item["trades"] = entry
+				trades_counter += 1
 				trade = entry
 				print "[+] Entry: ", entry_stop
 
 		item["balance"] = str(balance)		
 	
-	return coll				
+	return dict(result=coll, 
+				trades_counter=trades_counter,
+				min="{0:.2f}".format(min_balance),
+				max="{0:.2f}".format(max_balance),
+				sum_profit_bp="{0:.4f}".format(sum_profit_bp),
+				sum_profit_loss="{0:.2f}".format(sum_profit_loss))
 
 
 def get_opposite_action(action):

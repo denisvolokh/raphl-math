@@ -24,6 +24,11 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 			$http.get("/api/calc?dataset_id=" + $routeParams["id"] + "&position=" + pos)
 				.success(function(data) {
 					$scope.records = data.result;
+					$scope.trades_counter = data.trades_counter;
+					$scope.min = data.min;
+					$scope.max = data.max;
+					$scope.sum_profit_bp = data.sum_profit_bp;
+					$scope.sum_profit_loss = data.sum_profit_loss;
 					$rootScope.root.selectedFile = data.file.name;
 					$rootScope.root.loading = false;
 				})
