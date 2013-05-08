@@ -5,4 +5,4 @@ distribute==0.6.31
 mongoengine==0.8.0RC2
 pymongo==2.5
 wsgiref==0.1.2
-python-dateutil=2.1
+python-dateutil==2.1
