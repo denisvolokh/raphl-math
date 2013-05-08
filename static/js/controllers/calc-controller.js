@@ -37,14 +37,16 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 
 	$rootScope.doExportData = function() {
 		if (angular.isDefined($routeParams["id"])) {
-			$rootScope.root.loading = true;
-			$log.info($scope.position);
+			// $rootScope.root.loading = true;
 			var pos = Number($rootScope.root.position);
-			$http.get("/api/export?dataset_id=" + $routeParams["id"] + "&position=" + pos)
-				.success(function(data) {
-					$rootScope.root.loading = false;
-					alert("Here is file.")
-				})
+			$.fileDownload("/api/export?dataset_id=" + $routeParams["id"] + "&position=" + pos);
+			// $log.info($scope.position);
+			
+			// $http.get("/api/export?dataset_id=" + $routeParams["id"] + "&position=" + pos)
+			// 	.success(function(data) {
+			// 		$rootScope.root.loading = false;
+			// 		alert("Here is file.")
+			// 	})
 		}	
 	}
 

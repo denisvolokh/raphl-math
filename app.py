@@ -8,6 +8,10 @@ from datetime import datetime
 from flask import jsonify
 from bson.json_util import dumps
 from bson.objectid import ObjectId
+import StringIO
+import mimetypes
+from dateutil import parser
+from werkzeug.datastructures import Headers
 
 #----------------------------------------
 # initialization
@@ -64,21 +68,80 @@ def export():
 
 	calculated = do_calc(marked, position)
 	
-	resultFile = open('/tmp/myfile.csv','wb')
-	# copyfileobj(pilImage,tempFileObj)
-	resultFile.close()
+	response = Response()
+	response.status_code = 200
 
-	# return send_file(resultFile)
+	output = StringIO.StringIO()
+	table_header = ["DATE","OPEN","HIGH","LOW","LAST_PRICE","ACTION","VOL","STOP1","TARGET-1","TARGET-2","TRADES","EXIT 1","EXIT 2", "PROFIT (bp)","PROFIT (ccy)","BALANCE (ccy)"]
+	output.write(",".join(table_header))
+	output.write("\n")
+	for item in calculated["result"]:
+		row = []
+		dt = parser.parse(item["date"])
+		row.append(dt.strftime("%d/%m/%y %H:%M"))
+		row.append(item["open"])	
+		row.append(item["high"])
+		row.append(item["low"])	
+		row.append(item["last_price"])	
+		row.append(item["action"])	
+		row.append(item["vol"])	
+		row.append(item["stop1"])	
+		row.append(item["target1"])		
+		row.append(item["target2"])		
+		row.append(item["trades"])		
+		row.append(item["exit1"])		
+		row.append(item["exit2"])		
+		row.append(item["profit_bp"])
+		row.append(item["profit_ccy"])				
+		row.append(item["balance"])
+		output.write(",".join(row))						
+		output.write("\n")
+	response.data = output.getvalue()
 
-	# try:
-	# 	return send_file(resultFile)
-	# except:
-	# 	abort(404)	
+	filename = "export.csv"
+	mimetype_tuple = mimetypes.guess_type(filename)
 
-	return Response(resultFile, 
-					mimetype="text/csv",
-                    headers={"Content-Disposition":
-                             "attachment;filename=123.csv"})
+	response_headers = Headers({
+			'Pragma': "public",  # required,
+			'Expires': '0',
+			'Cache-Control': 'must-revalidate, post-check=0, pre-check=0',
+			'Cache-Control': 'private',  # required for certain browsers,
+			'Content-Type': mimetype_tuple[0],
+			'Content-Disposition': 'attachment; filename=\"%s\";' % filename,
+			'Content-Transfer-Encoding': 'binary',
+			'Content-Length': len(response.data)
+		})
+ 
+ 	if not mimetype_tuple[1] is None:
+ 		response.update({
+			'Content-Encoding': mimetype_tuple[1]
+ 		})
+ 
+	response.headers = response_headers
+ 
+    #as per jquery.fileDownload.js requirements
+	response.set_cookie('fileDownload', 'true', path='/')
+ 
+    ################################
+    # Return the response
+    #################################
+	return response
+
+	# resultFile = open('/tmp/myfile.csv','wb')
+	# # copyfileobj(pilImage,tempFileObj)
+	# resultFile.close()
+
+	# # return send_file(resultFile)
+
+	# # try:
+	# # 	return send_file(resultFile)
+	# # except:
+	# # 	abort(404)	
+
+	# return Response(resultFile, 
+	# 				mimetype="text/csv",
+ #                    headers={"Content-Disposition":
+ #                             "attachment;filename=123.csv"})
 
 
 @app.route("/api/calc", methods=["GET", "POST"])
