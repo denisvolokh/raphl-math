@@ -70,27 +70,30 @@ def list_records():
 	file = db["files"].find_one({"_id": ObjectId(id)})
 
 	if calc_hash != "":
-		count_records = db.command({
-				"count":"calculus",
-				"query": {
-					"calc_hash" : calc_hash
-				}
-			}
-		)
+		count_records = db["calculus"].find({"calc_hash" : calc_hash}).count()
+		# count_records = db.command({
+		# 		"count":"calculus",
+		# 		"query": {
+		# 			"calc_hash" : calc_hash
+		# 		}
+		# 	}
+		# )
 		records = db["calculus"].find({"calc_hash" : calc_hash}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
-		# total_pages = int(count_records["n"]) / num
+		
 	else:	
-		count_records = db.command({
-				"count":"records",
-				"query": {
-					"file_id" : str(id)			
-				}
-			}
-		)
+		count_records = db["records"].find({"file_id" : str(id)}).count()
+		# count_records = db.command({
+		# 		"count":"records",
+		# 		"query": {
+		# 			"file_id" : str(id)			
+		# 		}
+		# 	}
+		# )
 		records = db["records"].find({"file_id" : str(id)}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
-		# total_pages = int(count_records["n"]) / num
+		
 
-	total_pages = int(count_records["n"]) / PAGE_OFFSET
+	# total_pages = int(count_records["n"]) / PAGE_OFFSET
+	total_pages = int(count_records) / PAGE_OFFSET
 
 	return dumps(dict(file=file, result=list(records), pages=total_pages))
 
