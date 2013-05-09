@@ -101,6 +101,7 @@ def list_records():
 def export():
 	id = request.args["dataset_id"]
 	position = request.args["position"]
+	strategy = request.args["strategy"]
 
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
@@ -108,7 +109,7 @@ def export():
 	marked = mark_records_buy_action(records, "SELL")
 	marked = mark_records_buy_action(marked, "BUY")
 
-	calculated = do_calc(marked, position)
+	calculated = do_calc(marked, position, strategy)
 	
 	response = Response()
 	response.status_code = 200

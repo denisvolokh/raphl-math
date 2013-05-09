@@ -65,7 +65,7 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 	$rootScope.doExportData = function() {
 		if (angular.isDefined($routeParams["id"])) {
 			var pos = Number($rootScope.root.position);
-			$.fileDownload("/api/export?dataset_id=" + $routeParams["id"] + "&position=" + pos);
+			$.fileDownload("/api/export?dataset_id=" + $routeParams["id"] + "&position=" + pos + "&strategy=" + $rootScope.root.strategy);
 		}	
 	}
 

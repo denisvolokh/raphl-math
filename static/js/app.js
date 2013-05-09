@@ -7,10 +7,10 @@ app.config(function($interpolateProvider) {
 
 app.config(function($routeProvider) {
 	$routeProvider.when("/", {
-		templateUrl: "static/partials/home.html",
+		templateUrl: "static/partials/home.html?123123123123123",
 		controller: "HomeController"
 	}).when("/calc/:id", {
-		templateUrl: "static/partials/calc.html?12312312",
+		templateUrl: "static/partials/calc.html?123123123123123123",
 		controller: "CalcController" 
 	}).otherwise({
 		redirectTo: "/"
