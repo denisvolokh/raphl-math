@@ -183,7 +183,9 @@ def export():
 def calc():
 	id = request.args["dataset_id"]
 	position = request.args["position"]
-	
+	strategy = request.args["strategy"]
+	print "[+] STRATEGY: ", strategy
+
 	calc_hash = request.args["calc_hash"]
 	if calc_hash != "":
 		print "[+] CLEANING BEFORE NEW CALC"
@@ -195,7 +197,7 @@ def calc():
 	marked = mark_records_buy_action(records, "SELL")
 	marked = mark_records_buy_action(marked, "BUY")
 
-	calculated = do_calc(marked, position)
+	calculated = do_calc(marked, position, strategy)
 
 	print "[+] FILE ID", str(file["_id"])
 
@@ -336,7 +338,7 @@ def mark_records_buy_action(collection, action="SELL"):
 	return _coll
 
 
-def do_calc(coll, position=1000000):
+def do_calc(coll, position, strategy):
 	entry_action = ""
 	entry = ""
 	entry_stop = ""		
@@ -478,6 +480,9 @@ def do_calc(coll, position=1000000):
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
+								if strategy == "2":
+									print "[+] SKIP TARGET-2s"
+									closed_target2 = True
 								item["highlight"] = "warning"
 
 						if not closed_target2:
@@ -579,6 +584,9 @@ def do_calc(coll, position=1000000):
 								print "[+] EXIT 1 @ ", exit1
 								print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
+								if strategy == "2":
+									print "[+] SKIP TARGET-2"
+									closed_target2 = True
 								item["highlight"] = "warning"
 
 						if not closed_target2:

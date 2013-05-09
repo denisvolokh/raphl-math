@@ -35,7 +35,11 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 			$log.info($scope.position);
 			$scope.page = 1;
 			var pos = Number($rootScope.root.position);
-			$http.get("/api/calc?dataset_id=" + $routeParams["id"] + "&position=" + pos + "&page=" + $scope.page + "&calc_hash=" + $scope.calc_hash)
+			$http.get("/api/calc?dataset_id=" + $routeParams["id"] + 
+					"&position=" + pos + 
+					"&page=" + $scope.page + 
+					"&calc_hash=" + $scope.calc_hash + 
+					"&strategy=" + $rootScope.root.strategy)
 				.success(function(data) {
 					$scope.pages = data.pages;
 					$scope.trades_counter = data.trades_counter;

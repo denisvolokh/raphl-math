@@ -24,6 +24,7 @@ app.run(function($rootScope, $location, $http, $log) {
 		showCalcPanel: false,
 		loading: false,
 		selectedFile: "",
-		position: 1000000
+		position: 1000000,
+		strategy: 1
 	}
 });
