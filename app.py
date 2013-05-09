@@ -54,7 +54,7 @@ print db.collection_names()
 def removefile():
 	id = request.args["file_id"]
 
-	db["calculus"].remove({"file_id" : str(id)})
+	# db["calculus"].remove({"file_id" : str(id)})
 	db["records"].remove({"file_id": str(id)})
 	db["files"].remove({"_id" : ObjectId(id)})
 
@@ -68,28 +68,28 @@ def list_records():
 	page = int(request.args["page"])
 	calc_hash = request.args["calc_hash"]
 	file = db["files"].find_one({"_id": ObjectId(id)})
+	records = db["records"].find({"file_id" : str(id)})
 
 	if calc_hash != "":
-		count_records = db["calculus"].find({"calc_hash" : calc_hash}).count()
-		# count_records = db.command({
-		# 		"count":"calculus",
-		# 		"query": {
-		# 			"calc_hash" : calc_hash
-		# 		}
-		# 	}
-		# )
-		records = db["calculus"].find({"calc_hash" : calc_hash}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
-		
+		position = request.args["position"]
+		strategy = request.args["strategy"]
+		marked = mark_records_buy_action(records, "SELL")
+		marked = mark_records_buy_action(marked, "BUY")
+
+		calculated = do_calc(marked, position, strategy)
+		result = calculated["result"]
+		# count_records = db["calculus"].find({"calc_hash" : calc_hash}).count()
+		# records = db["calculus"].find({"calc_hash" : calc_hash}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
+		count_records = len(result)
+		start_index = (page - 1)*PAGE_OFFSET
+		end_index = page * PAGE_OFFSET
+		print len(result)
+		page_records = result[start_index:end_index]
+		print "RESULT[:] ", start_index, end_index
+		print len(page_records)
 	else:	
 		count_records = db["records"].find({"file_id" : str(id)}).count()
-		# count_records = db.command({
-		# 		"count":"records",
-		# 		"query": {
-		# 			"file_id" : str(id)			
-		# 		}
-		# 	}
-		# )
-		records = db["records"].find({"file_id" : str(id)}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
+		page_records = db["records"].find({"file_id" : str(id)}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
 	
 
 	# total_pages = int(count_records["n"]) / PAGE_OFFSET
@@ -100,7 +100,7 @@ def list_records():
 	print "[+] PAGE: ", page
 	print "[+] TOTAL: ", total_pages
 
-	return dumps(dict(file=file, result=list(records), pages=total_pages))
+	return dumps(dict(file=file, result=list(page_records), pages=total_pages))
 
 @app.route("/api/export", methods=["GET", "POST"])
 def export():
@@ -192,11 +192,11 @@ def calc():
 	strategy = request.args["strategy"]
 	print "[+] STRATEGY: ", strategy
 
-	calc_hash = request.args["calc_hash"]
-	if calc_hash != "":
-		print "[+] CLEANING BEFORE NEW CALC"
-		res = db["calculus"].remove({"calc_hash":calc_hash})
-		print res
+	# calc_hash = request.args["calc_hash"]
+	# if calc_hash != "":
+	# 	print "[+] CLEANING BEFORE NEW CALC"
+	# 	res = db["calculus"].remove({"calc_hash":calc_hash})
+	# 	print res
 
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
@@ -206,43 +206,48 @@ def calc():
 
 	calculated = do_calc(marked, position, strategy)
 
-	print "[+] FILE ID", str(file["_id"])
+	# print "[+] FILE ID", str(file["_id"])
 
 	calc_hash = hashlib.sha512(str(datetime.datetime.utcnow())).hexdigest()[:11]
-	calculus = []
-	for item in calculated["result"]:
-		calc_item = {
-			"file_id" : str(file["_id"]),
-			"trades_counter" : calculated["trades_counter"],
-			"max" : calculated["max"],
-			"min" : calculated["min"],
-			"sum_profit_bp" : calculated["sum_profit_bp"],
-			"sum_profit_loss" : calculated["sum_profit_loss"],
-			"calc_hash" : calc_hash,
-			"date" : item["date"],
-			"open" : item["open"],
-			"high" : item["high"],
-			"low" : item["low"],
-			"last_price" : item["last_price"],
-			"action" : item["action"],
-			"vol" : item["vol"],
-			"stop1" : item["stop1"],
-			"target1" : item["target1"],
-			"target2" : item["target2"],
-			"profit_bp": item["profit_bp"],
-			"profit_ccy": item["profit_ccy"],
-			"trades": item["trades"],
-			"exit1": item["exit1"],
-			"exit2": item["exit2"],
-			"balance": item["balance"]
-		}
-		if "highlight" in item:
-			calc_item["highlight"] = item["highlight"]
-		calculus.append(calc_item)
+	# calculus = []
+	# for item in calculated["result"]:
+	# 	calc_item = {
+	# 		"file_id" : str(file["_id"]),
+	# 		"trades_counter" : calculated["trades_counter"],
+	# 		"max" : calculated["max"],
+	# 		"min" : calculated["min"],
+	# 		"sum_profit_bp" : calculated["sum_profit_bp"],
+	# 		"sum_profit_loss" : calculated["sum_profit_loss"],
+	# 		"calc_hash" : calc_hash,
+	# 		"date" : item["date"],
+	# 		"open" : item["open"],
+	# 		"high" : item["high"],
+	# 		"low" : item["low"],
+	# 		"last_price" : item["last_price"],
+	# 		"action" : item["action"],
+	# 		"vol" : item["vol"],
+	# 		"stop1" : item["stop1"],
+	# 		"target1" : item["target1"],
+	# 		"target2" : item["target2"],
+	# 		"profit_bp": item["profit_bp"],
+	# 		"profit_ccy": item["profit_ccy"],
+	# 		"trades": item["trades"],
+	# 		"exit1": item["exit1"],
+	# 		"exit2": item["exit2"],
+	# 		"balance": item["balance"]
+	# 	}
+	# 	if "highlight" in item:
+	# 		calc_item["highlight"] = item["highlight"]
+	# 	calculus.append(calc_item)
 
-	db["calculus"].insert(calculus)	
-	total_pages = len(calculus) / PAGE_OFFSET
-	first_page = db["calculus"].find({"calc_hash" : calc_hash, "file_id" : str(file["_id"])}).limit(PAGE_OFFSET)
+	# db["calculus"].insert(calculus)	
+
+	records = calculated["result"]
+	total_pages = len(records) / PAGE_OFFSET
+	# first_page = db["calculus"].find({"calc_hash" : calc_hash, "file_id" : str(file["_id"])}).limit(PAGE_OFFSET)
+	first_page = records[:PAGE_OFFSET]
+
+	print "[+] FIRST PAGE: ", len(first_page)
 
 	return dumps(dict(file=file, 
 						result=list(first_page), 

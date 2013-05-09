@@ -11,7 +11,11 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 	$scope.listRecords = function() {
 		if (angular.isDefined($routeParams["id"])) {
 			$rootScope.root.loading = true;
-			$http.get("/listrecords?dataset_id=" + $routeParams["id"] + "&page=" + $scope.page + "&calc_hash=" + $scope.calc_hash)
+			$http.get("/listrecords?dataset_id=" + $routeParams["id"] + 
+				"&page=" + $scope.page + 
+				"&calc_hash=" + $scope.calc_hash +
+				"&position=" + Number($rootScope.root.position) + 
+				"&strategy=" + $rootScope.root.strategy)
 				.success(function(data) {
 					$rootScope.root.selectedFile = data.file.name;
 					$rootScope.root.loading = false;
