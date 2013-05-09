@@ -28,6 +28,7 @@ function HomeController($http, $scope, $log, $rootScope) {
 			formData.append("file", uploadFile);
 
 		var xhr = new XMLHttpRequest;
+		// xhr.addEventListener("load", function(e) {
 		xhr.onreadystatechange = function(event) {
 			if (event.currentTarget.readyState == 4 && event.currentTarget.status == 200) {
 				$http.get("/listfiles")

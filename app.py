@@ -90,10 +90,15 @@ def list_records():
 		# 	}
 		# )
 		records = db["records"].find({"file_id" : str(id)}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
-		
+	
 
 	# total_pages = int(count_records["n"]) / PAGE_OFFSET
 	total_pages = int(count_records) / PAGE_OFFSET
+
+	print "[+] LIST RECORDS: "
+	print "[+] HASH: ", calc_hash
+	print "[+] PAGE: ", page
+	print "[+] TOTAL: ", total_pages
 
 	return dumps(dict(file=file, result=list(records), pages=total_pages))
 
@@ -190,7 +195,8 @@ def calc():
 	calc_hash = request.args["calc_hash"]
 	if calc_hash != "":
 		print "[+] CLEANING BEFORE NEW CALC"
-		db["calculus"].remove({"calc_hash":calc_hash})
+		res = db["calculus"].remove({"calc_hash":calc_hash})
+		print res
 
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
@@ -233,21 +239,11 @@ def calc():
 		if "highlight" in item:
 			calc_item["highlight"] = item["highlight"]
 		calculus.append(calc_item)
-		# item["file_id"] = str(file["_id"])
-		# item["trades_counter"] = calculated["trades_counter"]
-		# item["max"] = calculated["max"]
-		# item["min"] = calculated["min"]
-		# item["sum_profit_bp"] = calculated["sum_profit_bp"]
-		# item["sum_profit_loss"] = calculated["sum_profit_loss"]
-		# item["calc_hash"] = calc_hash
-		# db["calculus"].insert(item)	
 
-	print calculated["result"][0]	
 	db["calculus"].insert(calculus)	
 	total_pages = len(calculus) / PAGE_OFFSET
-	
-	first_page = db["calculus"].find({"calc_hash" : calc_hash}).skip(0).limit(PAGE_OFFSET)
-	
+	first_page = db["calculus"].find({"calc_hash" : calc_hash, "file_id" : str(file["_id"])}).limit(PAGE_OFFSET)
+
 	return dumps(dict(file=file, 
 						result=list(first_page), 
 						trades_counter=calculated["trades_counter"],
@@ -360,7 +356,6 @@ def do_calc(coll, position, strategy):
 	sum_profit_bp = 0
 	sum_profit_loss = 0
 	for idx, item in enumerate(coll):
-		print idx, item["date"], entry
 		if entry:
 			just_closed = False		
 			# STOPPED OUT, NO TARGETS
@@ -387,8 +382,8 @@ def do_calc(coll, position, strategy):
 					elif exit2 == "":
 						exit2 = entry_stop	
 						item["exit2"] = exit2
-					print "[+] EXIT 1 @ ", exit1
-					print "[+] EXIT 2 @ ", exit2
+					# print "[+] EXIT 1 @ ", exit1
+					# print "[+] EXIT 2 @ ", exit2
 					closed_target1 = True
 					closed_target2 = True	
 					just_closed = True
@@ -415,15 +410,15 @@ def do_calc(coll, position, strategy):
 					elif exit2 == "":
 						exit2 = entry_stop	
 						item["exit2"] = exit2
-					print "[+] EXIT 1 @ ", exit1
-					print "[+] EXIT 2 @ ", exit2
+					# print "[+] EXIT 1 @ ", exit1
+					# print "[+] EXIT 2 @ ", exit2
 					closed_target1 = True
 					closed_target2 = True	
 					just_closed = True		
 
 			if entry_action == "SELL":		
 				if float(entry_target1) >= float(item["low"]) and float(entry_target2) >= float(item["low"]) and not closed_target1 and not closed_target2:
-						print "[+] REACHED ALL TARGETS IN ONE LINE ", float(item["low"]) 
+						# print "[+] REACHED ALL TARGETS IN ONE LINE ", float(item["low"]) 
 						exit1 = entry_target1	
 						item["exit1"] = exit1
 						exit2 = entry_target2	
@@ -448,10 +443,10 @@ def do_calc(coll, position, strategy):
 					if float(entry_target1) >= float(item["low"]) or float(entry_target2) >= float(item["low"]):
 						if not closed_target1:
 							if float(entry_target1) >= float(item["low"]):
-								print "[+] REACHED TARGET-1 @ ", float(item["low"]) 
-								print "[+] PROFIT ", str(2500000 * (float(entry) - float(entry_target1)))
+								# print "[+] REACHED TARGET-1 @ ", float(item["low"]) 
+								# print "[+] PROFIT ", str(2500000 * (float(entry) - float(entry_target1)))
 								entry_stop = entry
-								print "[+] NEW STOP ", entry_stop
+								# print "[+] NEW STOP ", entry_stop
 								if exit1 == "":
 									exit1 = entry_target1	
 									item["exit1"] = exit1
@@ -478,21 +473,21 @@ def do_calc(coll, position, strategy):
 										max_balance = balance
 									if balance <= min_balance:
 										min_balance = balance	
-								print "[+] EXIT 1 @ ", exit1
-								print "[+] EXIT 2 @ ", exit2
+								# print "[+] EXIT 1 @ ", exit1
+								# print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
 								if strategy == "2":
-									print "[+] SKIP TARGET-2s"
+									# print "[+] SKIP TARGET-2s"
 									closed_target2 = True
 								item["highlight"] = "warning"
 
 						if not closed_target2:
 							if float(entry_target2) >= float(item["low"]):
-								print "[+] REACHED TARGET-2 @ ", float(item["low"]) 
-								print "[+] CHECK DATA:", entry, entry_target2
-								print "[+] PROFIT ", str(float(position)/2 * (float(entry) - float(entry_target2)))
+								# print "[+] REACHED TARGET-2 @ ", float(item["low"]) 
+								# print "[+] CHECK DATA:", entry, entry_target2
+								# print "[+] PROFIT ", str(float(position)/2 * (float(entry) - float(entry_target2)))
 								entry_stop = entry
-								print "[+] NEW STOP ", entry_stop
+								# print "[+] NEW STOP ", entry_stop
 								if exit1 == "":
 									exit1 = entry_target1	
 									item["exit1"] = exit1
@@ -519,15 +514,15 @@ def do_calc(coll, position, strategy):
 										max_balance = balance
 									if balance <= min_balance:
 										min_balance = balance	
-								print "[+] EXIT 1 @ ", exit1
-								print "[+] EXIT 2 @ ", exit2
+								# print "[+] EXIT 1 @ ", exit1
+								# print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
 								item["highlight"] = "warning"
 								just_closed = closed_target1 and closed_target2					
 
 			elif entry_action == "BUY":
 				if float(entry_target1) <= float(item["high"]) and float(entry_target2) <= float(item["high"]) and not closed_target1 and not closed_target2:
-					print "[+] REACHED ALL TARGETS IN ONE LINE ", float(item["high"]) 
+					# print "[+] REACHED ALL TARGETS IN ONE LINE ", float(item["high"]) 
 					exit1 = entry_target1	
 					item["exit1"] = exit1
 					exit2 = entry_target2	
@@ -552,10 +547,10 @@ def do_calc(coll, position, strategy):
 					if float(entry_target1) <= float(item["high"]) or float(entry_target2) <= float(item["high"]):
 						if not closed_target1:
 							if float(entry_target1) <= float(item["high"]):
-								print "[+] REACHED TARGET-1 @ ", float(item["high"]) 
-								print "[+] PROFIT ", str(2500000 * (float(entry) - float(entry_target1)))
+								# print "[+] REACHED TARGET-1 @ ", float(item["high"]) 
+								# print "[+] PROFIT ", str(2500000 * (float(entry) - float(entry_target1)))
 								entry_stop = entry
-								print "[+] NEW STOP ", entry_stop
+								# print "[+] NEW STOP ", entry_stop
 								if exit1 == "":
 									exit1 = entry_target1	
 									item["exit1"] = exit1
@@ -582,21 +577,21 @@ def do_calc(coll, position, strategy):
 										max_balance = balance
 									if balance <= min_balance:
 										min_balance = balance	
-								print "[+] EXIT 1 @ ", exit1
-								print "[+] EXIT 2 @ ", exit2
+								# print "[+] EXIT 1 @ ", exit1
+								# print "[+] EXIT 2 @ ", exit2
 								closed_target1 = True
 								if strategy == "2":
-									print "[+] SKIP TARGET-2"
+									# print "[+] SKIP TARGET-2"
 									closed_target2 = True
 								item["highlight"] = "warning"
 
 						if not closed_target2:
 							if float(entry_target2) <= float(item["high"]):
-								print "[+] REACHED TARGET-2 @ ", float(item["high"]) 
-								print "[+] CHECK DATA:", entry, entry_target2
-								print "[+] PROFIT ", str(float(position)/2 * (float(entry) - float(entry_target2)))
+								# print "[+] REACHED TARGET-2 @ ", float(item["high"]) 
+								# print "[+] CHECK DATA:", entry, entry_target2
+								# print "[+] PROFIT ", str(float(position)/2 * (float(entry) - float(entry_target2)))
 								entry_stop = entry
-								print "[+] NEW STOP ", entry_stop
+								# print "[+] NEW STOP ", entry_stop
 								if exit1 == "":
 									exit1 = entry_target1	
 									item["exit1"] = exit1
@@ -623,14 +618,14 @@ def do_calc(coll, position, strategy):
 										max_balance = balance
 									if balance <= min_balance:
 										min_balance = balance	
-								print "[+] EXIT 1 @ ", exit1
-								print "[+] EXIT 2 @ ", exit2
+								# print "[+] EXIT 1 @ ", exit1
+								# print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
 								item["highlight"] = "warning"
 								just_closed = closed_target1 and closed_target2					
 
 			if closed_target1 and closed_target2:
-				print "[+] ALL CLOSED"
+				# print "[+] ALL CLOSED"
 				closed_target1 = False
 				closed_target2 = False
 				entry = ""
@@ -653,13 +648,13 @@ def do_calc(coll, position, strategy):
 						item["trades"] = entry
 						trades_counter += 1
 						trade = entry
-						print "[+] Entry: ", entry_stop	
+						# print "[+] Entry: ", entry_stop	
 
 		else:
 			if just_closed:
-				print "[+] JUST CLOSED"
+				# print "[+] JUST CLOSED"
 				just_closed = False		
-				print "[+] JUST CLOSED: ", item["action"], coll[idx-1]["action"] 
+				# print "[+] JUST CLOSED: ", item["action"], coll[idx-1]["action"] 
 				if item["action"] != "" and item["action"] == coll[idx-1]["action"]: 
 					"""case 2: closed at SELL and next is SELL as well -> open at next"""
 					item["highlight"] = "success"	
@@ -671,9 +666,9 @@ def do_calc(coll, position, strategy):
 					item["trades"] = entry
 					trades_counter += 1
 					trade = entry
-					print "[+] Entry Stop: ", entry_stop
-					print "[+]: ", idx, len(coll)
-					print "[+] Entry: ", entry
+					# print "[+] Entry Stop: ", entry_stop
+					# print "[+]: ", idx, len(coll)
+					# print "[+] Entry: ", entry
 
 			if entry == "" and  "marked" in item and item["marked"]:
 				entry_action = item["action"]
@@ -685,7 +680,7 @@ def do_calc(coll, position, strategy):
 				item["trades"] = entry
 				trades_counter += 1
 				trade = entry
-				print "[+] Entry: ", entry_stop
+				# print "[+] Entry: ", entry_stop
 
 		item["balance"] = str(balance)		
 	
