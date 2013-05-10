@@ -273,6 +273,8 @@ def calc():
 def list_files():
 	"""Print all records from collection FILES"""
 	files = db["files"].find()
+
+	print "[+] LIST FILES: ", files.count()
 	
 	return dumps(list(files))
 
