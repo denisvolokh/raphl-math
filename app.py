@@ -52,12 +52,6 @@ print db.collection_names()
 # controllers
 #----------------------------------------
 
-# @app.route('/listfiles', methods=['GET', 'POST'])
-# def list_files():
-# 	files = db["files"].find()
-# 	# print "[+] ", files.count()
-# 	return dumps(list(files))
-
 @app.route('/api/removefile', methods=['GET', 'POST'])
 def removefile():
 	id = request.args["file_id"]
@@ -75,14 +69,15 @@ def list_records():
 	id = request.args["dataset_id"]
 	page = int(request.args["page"])
 	calc_hash = request.args["calc_hash"]
+	onaction = request.args["onaction"]
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
 
 	if calc_hash != "":
 		position = request.args["position"]
 		strategy = request.args["strategy"]
-		marked = mark_records_buy_action(records, "SELL")
-		marked = mark_records_buy_action(marked, "BUY")
+		marked = mark_records_buy_action(records, "SELL", onaction)
+		marked = mark_records_buy_action(marked, "BUY", onaction)
 
 		calculated = do_calc(marked, position, strategy)
 		result = calculated["result"]
@@ -198,7 +193,9 @@ def calc():
 	id = request.args["dataset_id"]
 	position = request.args["position"]
 	strategy = request.args["strategy"]
+	onaction = request.args["onaction"]
 	print "[+] STRATEGY: ", strategy
+	print "[+] onaction: ", onaction
 
 	# calc_hash = request.args["calc_hash"]
 	# if calc_hash != "":
@@ -209,8 +206,8 @@ def calc():
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
 	
-	marked = mark_records_buy_action(records, "SELL")
-	marked = mark_records_buy_action(marked, "BUY")
+	marked = mark_records_buy_action(records, "SELL", onaction)
+	marked = mark_records_buy_action(marked, "BUY", onaction)
 
 	calculated = do_calc(marked, position, strategy)
 
@@ -332,24 +329,43 @@ def upload_file():
 def index():
     return render_template('index.html')
 
-def mark_records_buy_action(collection, action="SELL"):
+def mark_records_buy_action(collection, action="SELL", onaction=2):
 	skip_subsequent_flag = False			
 	_coll = []
 
-	for idx, item in enumerate(collection):
-		if idx != 0:
-			prev = _coll[idx-1]
-			if not skip_subsequent_flag:
-				if item["action"] == action and prev["action"] == action:
-					# prev["highlight"] = True
-					item["marked"] = True
-					skip_subsequent_flag = True
+	print "[+] mark_records_buy_action:", onaction
 
-			if item["action"] == "" or item["action"] == get_opposite_action(item["action"]): 
-				skip_subsequent_flag = False		
+	if onaction == "2":
+		for idx, item in enumerate(collection):
+			if idx != 0:
+				prev = _coll[idx-1]
+				if not skip_subsequent_flag:
+					if item["action"] == action and prev["action"] == action:
+						# prev["highlight"] = True
+						item["marked"] = True
+						skip_subsequent_flag = True
 
-		_coll.append(item)		
+				if item["action"] == "" or item["action"] == get_opposite_action(item["action"]): 
+					skip_subsequent_flag = False		
 
+			_coll.append(item)		
+	elif onaction == "3":
+		for idx, item in enumerate(collection):
+			if idx >= 2:
+				prevprev = _coll[idx-2]
+				prev = _coll[idx-1]
+				if not skip_subsequent_flag:
+					if item["action"] == action and prev["action"] == action and prevprev["action"] == action:
+						# prev["highlight"] = True
+						item["marked"] = True
+						skip_subsequent_flag = True
+
+				if item["action"] == "" or item["action"] == get_opposite_action(item["action"]): 
+					skip_subsequent_flag = False		
+
+			_coll.append(item)				
+
+	print "[+] mark_records_buy_action:", len(_coll)		
 	return _coll
 
 
