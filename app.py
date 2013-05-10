@@ -33,7 +33,7 @@ PAGE_OFFSET = 20
 MONGOHQ_URL = os.environ.get("MONGOHQ_URL")
 if MONGOHQ_URL:
 	conn = pymongo.Connection(MONGOHQ_URL)
-	db = conn[urlparse(MONGO_URL).path[1:]]
+	db = conn[urlparse(MONGOHQ_URL).path[1:]]
 else:
 	# Not on an app with the MongoHQ add-on, do some localhost action
     conn = pymongo.Connection('localhost')
