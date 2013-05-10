@@ -47,6 +47,7 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 				.success(function(data) {
 					$scope.pages = data.pages;
 					$scope.trades_counter = data.trades_counter;
+					$scope.losing_trades_counter = data.losing_trades_counter;
 					$scope.min = data.min;
 					$scope.max = data.max;
 					$scope.sum_profit_bp = data.sum_profit_bp;
