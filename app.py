@@ -3,6 +3,7 @@ import os
 from flask import Flask, Response, request, redirect, render_template, send_from_directory, send_file
 import csv
 from urlparse import urlparse
+import pymongo
 from pymongo import MongoClient
 from datetime import datetime
 from flask import jsonify
@@ -29,15 +30,22 @@ ALLOWED_EXTENSIONS = set(['csv',])
 PAGE_OFFSET = 20
 
 # mongodb://localhost/raphl-math
-database = os.environ.get("MONGOHQ_URL", "")
-if os.environ.get("MONGOHQ_URL") == None:
-	database = "mongodb://root:admin@linus.mongohq.com:10061/app15435588"
-print "[+] ", database
+MONGOHQ_URL = os.environ.get("MONGOHQ_URL")
+if MONGOHQ_URL:
+	conn = pymongo.Connection(MONGOHQ_URL)
+	db = conn[urlparse(MONGO_URL).path[1:]]
+else:
+	# Not on an app with the MongoHQ add-on, do some localhost action
+    conn = pymongo.Connection('localhost')
+    db = conn['raphl-math']	
+
+print "[+] Database", db
 
 # client = MongoClient("mongodb://heroku:859c8a4107b78276aa47ee214977a061@linus.mongohq.com:10061/app15435588")
-client = MongoClient(database)
+# client = MongoClient(database)
 # client = MongoClient("mongodb://root:admin@linus.mongohq.com:10061/app15435588")
-db = client['app15435588']
+# db = client['app15435588']
+
 print db.collection_names()
 
 #----------------------------------------
@@ -279,7 +287,7 @@ def upload_file():
 		print "[+] Files: ", request.files
 		file = request.files['file']
 		print "[+] Files: ", file
-		if "name" in request.form:
+		if "name" in request.form and request.form["name"] != "":
 			given_name = request.form["name"]
 		else:
 			given_name = file.filename	
