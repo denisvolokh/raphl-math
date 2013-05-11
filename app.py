@@ -125,10 +125,17 @@ def export():
 
 	output = StringIO.StringIO()
 
-	summary_header = ["NUMBER OF TRADES", "NUMBER OF LOSING TRADES","PnL","BPs","MIN","MAX"]
+	summary_header = ["NUMBER OF TRADES", "NUMBER OF LOSING TRADES","PnL","BPs","MIN","MAX", "1 Target", "2 Targets"]
 	output.write(",".join(summary_header))
 	output.write("\n")
-	sums = [str(calculated["trades_counter"]), str(calculated["losing_trades_counter"]), calculated["sum_profit_loss"], calculated["sum_profit_bp"], calculated["min"], calculated["max"]]
+	sums = [str(calculated["trades_counter"]), 
+			str(calculated["losing_trades_counter"]), 
+			calculated["sum_profit_loss"], 
+			calculated["sum_profit_bp"], 
+			calculated["min"], 
+			calculated["max"], 
+			calculated["reached_1_target"], 
+			calculated["reached_2_targets"]]
 	output.write(",".join(sums))
 	output.write("\n")
 	output.write("\n")
@@ -263,6 +270,8 @@ def calc():
 						min=calculated["min"],
 						sum_profit_bp=calculated["sum_profit_bp"],
 						sum_profit_loss=calculated["sum_profit_loss"],
+						reached_1_target=calculated["reached_1_target"],
+						reached_2_targets=calculated["reached_2_targets"],
 						calc_hash=calc_hash,
 						pages=total_pages))	
 
@@ -391,6 +400,8 @@ def do_calc(coll, position, strategy):
 	max_balance = 0
 	sum_profit_bp = 0
 	sum_profit_loss = 0
+	reached_1_target = 0
+	reached_2_targets = 0
 	for idx, item in enumerate(coll):
 		if entry:
 			just_closed = False		
@@ -422,6 +433,8 @@ def do_calc(coll, position, strategy):
 						item["exit2"] = exit2
 					# print "[+] EXIT 1 @ ", exit1
 					# print "[+] EXIT 2 @ ", exit2
+					if closed_target1 and not closed_target2:
+						reached_1_target += 1
 					closed_target1 = True
 					closed_target2 = True	
 					just_closed = True
@@ -452,6 +465,8 @@ def do_calc(coll, position, strategy):
 						item["exit2"] = exit2
 					# print "[+] EXIT 1 @ ", exit1
 					# print "[+] EXIT 2 @ ", exit2
+					if closed_target1 and not closed_target2:
+						reached_1_target += 1
 					closed_target1 = True
 					closed_target2 = True	
 					just_closed = True		
@@ -557,6 +572,7 @@ def do_calc(coll, position, strategy):
 								# print "[+] EXIT 1 @ ", exit1
 								# print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
+								reached_2_targets += 1
 								item["highlight"] = "warning"
 								just_closed = closed_target1 and closed_target2					
 
@@ -661,6 +677,7 @@ def do_calc(coll, position, strategy):
 								# print "[+] EXIT 1 @ ", exit1
 								# print "[+] EXIT 2 @ ", exit2
 								closed_target2 = True
+								reached_2_targets += 1
 								item["highlight"] = "warning"
 								just_closed = closed_target1 and closed_target2					
 
@@ -730,7 +747,9 @@ def do_calc(coll, position, strategy):
 				min="{0:.2f}".format(min_balance),
 				max="{0:.2f}".format(max_balance),
 				sum_profit_bp="{0:.4f}".format(sum_profit_bp),
-				sum_profit_loss="{0:.2f}".format(sum_profit_loss))
+				sum_profit_loss="{0:.2f}".format(sum_profit_loss),
+				reached_1_target=reached_1_target,
+				reached_2_targets=reached_2_targets)
 
 
 def get_opposite_action(action):

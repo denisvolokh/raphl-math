@@ -1,23 +1,68 @@
 <div class="container-fluid">
 		<div class="sapn12 well">
-			<span class="span4">
-				<p>Number of Trades(Losing): {[{ trades_counter }]} ({[{ losing_trades_counter }]})</p>
+			<table class="table">
+				<thead>
+					<tr>
+						<th>
+							Total Trades			
+						</th>
+						<th>
+							Losing Trades			
+						</th>
+						<th>
+							PnL
+						</th>
+						<th>
+							BPs
+						</th>
+						<th>
+							MIN
+						</th>
+						<th>
+							MAX
+						</th>
+						<th>
+							1 Target
+						</th>
+						<th>
+							2 Targets
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>	
+						<td>{[{ trades_counter }]}</td>
+						<td>{[{ losing_trades_counter }]}</td>
+						<td>{[{ sum_profit_loss }]}</td>
+						<td>{[{ sum_profit_bp }]}</td>
+						<td>{[{ min }]}</td>
+						<td>{[{ max }]}</td>
+						<td>{[{ reached_1_target }]}</td>
+						<td>{[{ reached_2_targets }]}</td>
+					</tr>
+				</tbody>
+			</table>
+			<!-- <span class="span3">
+				Number of Trades(Losing): {[{ trades_counter }]} ({[{ losing_trades_counter }]})
 			</span>
-			<!-- <span class="span2">
-				<p>Losing trades: {[{ max }]}</p>
+			<span class="span2">
+				PnL: {[{ sum_profit_loss }]}
+			</span>
+			<span class="span1">
+				BPs: {[{ sum_profit_bp }]}p></p>
+			</span>
+			<span class="span1">
+				MIN: {[{ min }]}
+			</span>
+			<span class="span1">
+				MAX: {[{ max }]}
+			</span>
+			<span class="span2">
+				1 target: {[{ min }]}
+			</span>
+			<span class="span2">
+				2 targets: {[{ min }]}
 			</span> -->
-			<span class="span2">
-				<p>PnL: {[{ sum_profit_loss }]}</p>
-			</span>
-			<span class="span2">
-				<p>BPs: {[{ sum_profit_bp }]}</p>
-			</span>
-			<span class="span2">
-				<p>MIN: {[{ min }]}</p>
-			</span>
-			<span class="span2">
-				<p>MAX: {[{ max }]}</p>
-			</span>
 		</div>
 		<table class="table table-condensed table-hover">
 			<thead>
