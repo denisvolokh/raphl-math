@@ -134,8 +134,8 @@ def export():
 			calculated["sum_profit_bp"], 
 			calculated["min"], 
 			calculated["max"], 
-			calculated["reached_1_target"], 
-			calculated["reached_2_targets"]]
+			str(calculated["reached_1_target"]), 
+			str(calculated["reached_2_targets"])]
 	output.write(",".join(sums))
 	output.write("\n")
 	output.write("\n")
