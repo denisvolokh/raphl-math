@@ -110,12 +110,13 @@ def export():
 	id = request.args["dataset_id"]
 	position = request.args["position"]
 	strategy = request.args["strategy"]
+	onaction = request.args["onaction"]
 
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
 	
-	marked = mark_records_buy_action(records, "SELL")
-	marked = mark_records_buy_action(marked, "BUY")
+	marked = mark_records_buy_action(records, "SELL", onaction)
+	marked = mark_records_buy_action(marked, "BUY", onaction)
 
 	calculated = do_calc(marked, position, strategy)
 	
