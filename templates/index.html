@@ -44,6 +44,9 @@
         <span class="label label-important" ng-show="root.loading">Just a moment...loading data.</span>
     </form>
     <form class="navbar-form pull-right form-inline" ng-show="root.showCalcPanel">
+        <label class="checkbox">
+          <input type="checkbox" ng-model="root.adventry">Advanced Re-Entry</input>
+        </label>
         <select ng-model="root.onaction" class="span2">
           <option value="2">On 2nd action</option>
           <option value="3">On 3rd action</option>          
