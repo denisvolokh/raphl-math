@@ -16,8 +16,7 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 				"&calc_hash=" + $scope.calc_hash +
 				"&position=" + Number($rootScope.root.position) + 
 				"&strategy=" + $rootScope.root.strategy +
-				"&onaction=" + $rootScope.root.onaction + 
-				"&adventry=" + $rootScope.root.adventry)
+				"&onaction=" + $rootScope.root.onaction)
 				.success(function(data) {
 					$rootScope.root.selectedFile = data.file.name;
 					$rootScope.root.loading = false;
@@ -46,8 +45,7 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 					"&page=" + $scope.page + 
 					"&calc_hash=" + $scope.calc_hash + 
 					"&strategy=" + $rootScope.root.strategy +
-					"&onaction=" + $rootScope.root.onaction + 
-					"&adventry=" + $rootScope.root.adventry)
+					"&onaction=" + $rootScope.root.onaction)
 				.success(function(data) {
 					$scope.pages = data.pages;
 					$scope.trades_counter = data.trades_counter;
@@ -79,8 +77,7 @@ function CalcController($log, $scope, $rootScope, $routeParams, $http) {
 			$.fileDownload("/api/export?dataset_id=" + $routeParams["id"] + 
 				"&position=" + pos + 
 				"&strategy=" + $rootScope.root.strategy + 
-				"&onaction=" + $rootScope.root.onaction + 
-				"&adventry=" + $rootScope.root.adventry);
+				"&onaction=" + $rootScope.root.onaction);
 		}	
 	}
 

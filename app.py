@@ -48,9 +48,6 @@ print "[+] Database", db
 
 print db.collection_names()
 
-def str2bool(v):
-	return v.lower() in ("true")
-
 #----------------------------------------
 # controllers
 #----------------------------------------
@@ -73,7 +70,6 @@ def list_records():
 	page = int(request.args["page"])
 	calc_hash = request.args["calc_hash"]
 	onaction = request.args["onaction"]
-	adventry = str2bool(request.args["adventry"])
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
 
@@ -83,7 +79,7 @@ def list_records():
 		marked = mark_records_buy_action(records, "SELL", onaction)
 		marked = mark_records_buy_action(marked, "BUY", onaction)
 
-		calculated = do_calc(marked, position, strategy, adventry)
+		calculated = do_calc(marked, position, strategy)
 		result = calculated["result"]
 		# count_records = db["calculus"].find({"calc_hash" : calc_hash}).count()
 		# records = db["calculus"].find({"calc_hash" : calc_hash}).skip((page-1)*PAGE_OFFSET).limit(PAGE_OFFSET)
@@ -115,7 +111,6 @@ def export():
 	position = request.args["position"]
 	strategy = request.args["strategy"]
 	onaction = request.args["onaction"]
-	adventry = str2bool(request.args["adventry"])
 
 	file = db["files"].find_one({"_id": ObjectId(id)})
 	records = db["records"].find({"file_id" : str(id)})
@@ -123,7 +118,7 @@ def export():
 	marked = mark_records_buy_action(records, "SELL", onaction)
 	marked = mark_records_buy_action(marked, "BUY", onaction)
 
-	calculated = do_calc(marked, position, strategy, adventry)
+	calculated = do_calc(marked, position, strategy)
 	
 	response = Response()
 	response.status_code = 200
@@ -207,7 +202,6 @@ def calc():
 	position = request.args["position"]
 	strategy = request.args["strategy"]
 	onaction = request.args["onaction"]
-	adventry = str2bool(request.args["adventry"])
 	print "[+] STRATEGY: ", strategy
 	print "[+] onaction: ", onaction
 
@@ -223,7 +217,7 @@ def calc():
 	marked = mark_records_buy_action(records, "SELL", onaction)
 	marked = mark_records_buy_action(marked, "BUY", onaction)
 
-	calculated = do_calc(marked, position, strategy, adventry)
+	calculated = do_calc(marked, position, strategy)
 
 	# print "[+] FILE ID", str(file["_id"])
 
@@ -385,7 +379,7 @@ def mark_records_buy_action(collection, action="SELL", onaction=2):
 	return _coll
 
 
-def do_calc(coll, position, strategy, adventry):
+def do_calc(coll, position, strategy):
 	entry_action = ""
 	entry = ""
 	entry_stop = ""		
@@ -441,25 +435,9 @@ def do_calc(coll, position, strategy, adventry):
 					# print "[+] EXIT 2 @ ", exit2
 					if closed_target1 and not closed_target2:
 						reached_1_target += 1
-
-					"""Advanced Re-Entry on close deal"""	
-					if adventry and item["action"] == entry_action:
-						entry_action = item["action"]
-						item["highlight"] = "success"
-						entry = item["last_price"]
-						entry_stop = item["stop1"]
-						entry_target1 = item["target1"]
-						entry_target2 = item["target2"]
-						item["trades"] = entry
-						trades_counter += 1
-						trade = entry
-						closed_target1 = False
-						closed_target2 = False
-					else:	
-						closed_target1 = True
-						closed_target2 = True	
-						just_closed = True
-
+					closed_target1 = True
+					closed_target2 = True	
+					just_closed = True
 			elif entry_action == "BUY":
 				if float(item["low"]) <= float(entry_stop):
 					# print "[+] STOPPED OUT @ ", float(item["low"])
@@ -489,24 +467,9 @@ def do_calc(coll, position, strategy, adventry):
 					# print "[+] EXIT 2 @ ", exit2
 					if closed_target1 and not closed_target2:
 						reached_1_target += 1
-
-					"""Advanced Re-Entry on close deal"""	
-					if adventry and item["action"] == entry_action:
-						entry_action = item["action"]
-						item["highlight"] = "success"
-						entry = item["last_price"]
-						entry_stop = item["stop1"]
-						entry_target1 = item["target1"]
-						entry_target2 = item["target2"]
-						item["trades"] = entry
-						trades_counter += 1
-						trade = entry
-						closed_target1 = False
-						closed_target2 = False
-					else:	
-						closed_target1 = True
-						closed_target2 = True	
-						just_closed = True
+					closed_target1 = True
+					closed_target2 = True	
+					just_closed = True		
 
 			if entry_action == "SELL":		
 				if float(entry_target1) >= float(item["low"]) and float(entry_target2) >= float(item["low"]) and not closed_target1 and not closed_target2:
@@ -528,25 +491,9 @@ def do_calc(coll, position, strategy, adventry):
 							max_balance = balance
 						if balance <= min_balance:
 							min_balance = balance	
-
-						"""Advanced Re-Entry on close deal"""	
-						if adventry and item["action"] == entry_action:
-							entry_action = item["action"]
-							item["highlight"] = "success"
-							entry = item["last_price"]
-							entry_stop = item["stop1"]
-							entry_target1 = item["target1"]
-							entry_target2 = item["target2"]
-							item["trades"] = entry
-							trades_counter += 1
-							trade = entry
-							closed_target1 = False
-							closed_target2 = False
-						else:	
-							closed_target1 = True
-							closed_target2 = True	
-							item["highlight"] = "warning"
-							
+						closed_target1 = True
+						closed_target2 = True
+						item["highlight"] = "warning"
 				else:		
 					if float(entry_target1) >= float(item["low"]) or float(entry_target2) >= float(item["low"]):
 						if not closed_target1:
@@ -624,25 +571,10 @@ def do_calc(coll, position, strategy, adventry):
 										min_balance = balance	
 								# print "[+] EXIT 1 @ ", exit1
 								# print "[+] EXIT 2 @ ", exit2
+								closed_target2 = True
 								reached_2_targets += 1
-
-								"""Advanced Re-Entry on close deal"""	
-								if adventry and item["action"] == entry_action:
-									entry_action = item["action"]
-									item["highlight"] = "success"
-									entry = item["last_price"]
-									entry_stop = item["stop1"]
-									entry_target1 = item["target1"]
-									entry_target2 = item["target2"]
-									item["trades"] = entry
-									trades_counter += 1
-									trade = entry
-									closed_target1 = False
-									closed_target2 = False
-								else:	
-									closed_target2 = True
-									item["highlight"] = "warning"
-									just_closed = closed_target1 and closed_target2					
+								item["highlight"] = "warning"
+								just_closed = closed_target1 and closed_target2					
 
 			elif entry_action == "BUY":
 				if float(entry_target1) <= float(item["high"]) and float(entry_target2) <= float(item["high"]) and not closed_target1 and not closed_target2:
@@ -664,25 +596,9 @@ def do_calc(coll, position, strategy, adventry):
 						max_balance = balance
 					if balance <= min_balance:
 						min_balance = balance	
-
-					"""Advanced Re-Entry on close deal"""	
-					if adventry and item["action"] == entry_action:
-						entry_action = item["action"]
-						item["highlight"] = "success"
-						entry = item["last_price"]
-						entry_stop = item["stop1"]
-						entry_target1 = item["target1"]
-						entry_target2 = item["target2"]
-						item["trades"] = entry
-						trades_counter += 1
-						trade = entry
-						closed_target1 = False
-						closed_target2 = False
-					else:	
-						closed_target1 = True
-						closed_target2 = True	
-						item["highlight"] = "warning"	
-					
+					closed_target1 = True
+					closed_target2 = True
+					item["highlight"] = "warning"
 				else:	
 					if float(entry_target1) <= float(item["high"]) or float(entry_target2) <= float(item["high"]):
 						if not closed_target1:
@@ -760,28 +676,10 @@ def do_calc(coll, position, strategy, adventry):
 										min_balance = balance	
 								# print "[+] EXIT 1 @ ", exit1
 								# print "[+] EXIT 2 @ ", exit2
+								closed_target2 = True
 								reached_2_targets += 1
-
-								print "[+] CLOSED BUY", item["action"], entry_action, adventry
-
-								"""Advanced Re-Entry on close deal"""	
-								if adventry and item["action"] == entry_action:
-									print "[+] Advanced Entry!!!", item["action"], entry_action, adventry
-									entry_action = item["action"]
-									item["highlight"] = "success"
-									entry = item["last_price"]
-									entry_stop = item["stop1"]
-									entry_target1 = item["target1"]
-									entry_target2 = item["target2"]
-									item["trades"] = entry
-									trades_counter += 1
-									trade = entry
-									closed_target1 = False
-									closed_target2 = False
-								else:	
-									closed_target2 = True								
-									item["highlight"] = "warning"
-									just_closed = closed_target1 and closed_target2					
+								item["highlight"] = "warning"
+								just_closed = closed_target1 and closed_target2					
 
 			if closed_target1 and closed_target2:
 				# print "[+] ALL CLOSED"
@@ -875,7 +773,5 @@ def add_header(response):
 #----------------------------------------
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5001))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-
-

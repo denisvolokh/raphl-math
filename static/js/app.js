@@ -26,7 +26,6 @@ app.run(function($rootScope, $location, $http, $log) {
 		selectedFile: "",
 		position: 1000000,
 		strategy: 1,
-		onaction: 2,
-		adventry: false
+		onaction: 2
 	}
 });
