@@ -161,6 +161,10 @@ def export():
 	for item in calculated["result"]:
 		if "potential" not in item:
 			item["potential"] = ""
+		if "short" not in item:
+			item["short"] = ""				
+		if "long" not in item:
+			item["long"] = ""					
 		row = []
 		dt = parser.parse(item["date"])
 		row.append(dt.strftime("%d/%m/%y %H:%M"))
