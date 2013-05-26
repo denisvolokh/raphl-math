@@ -27,6 +27,9 @@
 						<th>
 							2 Targets
 						</th>
+						<th>
+							SUM(POTENTIAL)
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -39,6 +42,7 @@
 						<td>{[{ max }]}</td>
 						<td>{[{ reached_1_target }]}</td>
 						<td>{[{ reached_2_targets }]}</td>
+						<td>{[{ sum_potential }]}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -83,6 +87,12 @@
 						L/PRICE
 					</th>
 					<th>
+						SHORT
+					</th>
+					<th>
+						LONG
+					</th>
+					<th>
 						ACTION
 					</th>
 					<th>
@@ -95,19 +105,19 @@
 						STOP
 					</th> -->
 					<th>
-						TARGET1
+						T1
 					</th>
 					<th>
-						TARGET2
+						T2
 					</th>
 					<th>
 						TRADES
 					</th>
 					<th>
-						1<sup>st</sup> EXIT
+						EXIT1
 					</th>
 					<th>
-						2<sup>st</sup> EXIT
+						EXIT2
 					</th>
 					<th>
 						PROFIT(bp)
@@ -117,6 +127,9 @@
 					</th>
 					<th>
 						BALANCE(ccy)
+					</th>
+					<th>
+						Potential
 					</th>
 				</tr>
 			</thead>
@@ -136,6 +149,12 @@
 					</td>
 					<td>
 						{[{item.last_price}]}
+					</td>
+					<td>
+						{[{item.short}]}
+					</td>
+					<td>
+						{[{item.long}]}
 					</td>
 					<td>
 						{[{item.action}]}
@@ -172,6 +191,9 @@
 					</td>
 					<td>
 						{[{item.balance}]}
+					</td>
+					<td>
+						{[{item.potential}]}
 					</td>
 				</tr>
 			</tbody>

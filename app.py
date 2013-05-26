@@ -81,6 +81,8 @@ def list_records():
 
 		if strategy == "0":
 			calculated = do_calc_ignore_targets(marked, position)
+		elif strategy == "3":
+			calculated = do_calc_with_normalization(marked, position)	
 		else:
 			calculated = do_calc(marked, position, strategy)
 
@@ -124,15 +126,20 @@ def export():
 
 	if strategy == "0":
 		calculated = do_calc_ignore_targets(marked, position)
+	elif strategy == "3":
+		calculated = do_calc_with_normalization(marked, position)	
 	else:
 		calculated = do_calc(marked, position, strategy)
 	
+	if "sum_potential" not in calculated:
+		calculated["sum_potential"] = 0	
+
 	response = Response()
 	response.status_code = 200
 
 	output = StringIO.StringIO()
 
-	summary_header = ["NUMBER OF TRADES", "NUMBER OF LOSING TRADES","PnL","BPs","MIN","MAX", "1 Target", "2 Targets"]
+	summary_header = ["NUMBER OF TRADES", "NUMBER OF LOSING TRADES","PnL","BPs","MIN","MAX", "1 Target", "2 Targets", "SUM POTENTIAL"]
 	output.write(",".join(summary_header))
 	output.write("\n")
 	sums = [str(calculated["trades_counter"]), 
@@ -142,22 +149,27 @@ def export():
 			calculated["min"], 
 			calculated["max"], 
 			str(calculated["reached_1_target"]), 
-			str(calculated["reached_2_targets"])]
+			str(calculated["reached_2_targets"]),
+			str(calculated["sum_potential"])]
 	output.write(",".join(sums))
 	output.write("\n")
 	output.write("\n")
 
-	table_header = ["DATE","OPEN","HIGH","LOW","LAST_PRICE","ACTION","VOL","STOP1","TARGET-1","TARGET-2","TRADES","EXIT 1","EXIT 2", "PROFIT (bp)","PROFIT (ccy)","BALANCE (ccy)"]
+	table_header = ["DATE","OPEN","HIGH","LOW","LAST_PRICE","SHORT","LONG","ACTION","VOL","STOP1","TARGET-1","TARGET-2","TRADES","EXIT 1","EXIT 2", "PROFIT (bp)","PROFIT (ccy)","BALANCE (ccy)", "POTENTIAL"]
 	output.write(",".join(table_header))
 	output.write("\n")
 	for item in calculated["result"]:
+		if "potential" not in item:
+			item["potential"] = ""
 		row = []
 		dt = parser.parse(item["date"])
 		row.append(dt.strftime("%d/%m/%y %H:%M"))
 		row.append(item["open"])	
 		row.append(item["high"])
 		row.append(item["low"])	
-		row.append(item["last_price"])	
+		row.append(item["last_price"])
+		row.append(item["short"])	
+		row.append(item["long"])		
 		row.append(item["action"])	
 		row.append(item["vol"])	
 		row.append(item["stop1"])	
@@ -169,6 +181,7 @@ def export():
 		row.append(item["profit_bp"])
 		row.append(item["profit_ccy"])				
 		row.append(item["balance"])
+		row.append(item["potential"])
 		output.write(",".join(row))						
 		output.write("\n")
 	response.data = output.getvalue()
@@ -218,11 +231,16 @@ def calc():
 	marked = mark_records_buy_action(records, "SELL", onaction)
 	marked = mark_records_buy_action(marked, "BUY", onaction)
 
-	if strategy == "0":
+	if strategy == "0": #no targets
 		calculated = do_calc_ignore_targets(marked, position)
+	elif strategy == "3": # normalization
+		calculated = do_calc_with_normalization(marked, position)	
 	else:		
 		calculated = do_calc(marked, position, strategy)
 
+	if "sum_potential" not in calculated:
+		calculated["sum_potential"] = 0		
+		
 	calc_hash = hashlib.sha512(str(datetime.datetime.utcnow())).hexdigest()[:11]
 
 	records = calculated["result"]
@@ -242,6 +260,7 @@ def calc():
 						sum_profit_loss=calculated["sum_profit_loss"],
 						reached_1_target=calculated["reached_1_target"],
 						reached_2_targets=calculated["reached_2_targets"],
+						sum_potential=calculated["sum_potential"],
 						calc_hash=calc_hash,
 						pages=total_pages))	
 
@@ -280,27 +299,34 @@ def upload_file():
 			file_id = db["files"].insert(_file)
 			rows = []
 			for row in csv.DictReader(file.stream):
-    				if row["Date/Time"] != "":
-						record = {
-							"file_id": str(file_id),
-							"date" : row["Date/Time"],
-							"open" : row["OPEN"],
-							"high" : row["HIGH"],
-							"low" : row["LOW"],
-							"last_price" : row["LAST_PRICE"],
-							"action" : row["Action"],
-							"vol" : row["Vol"],
-							"stop1" : row["STOP1"],
-							"target1" : row["Target 1"],
-							"target2" : row["Target 2"],
-							"profit_bp": "",
-							"profit_ccy": "",
-							"trades": "",
-							"exit1": "",
-							"exit2": "",
-							"balance": 0
-						}
-						rows.append(record)
+				if "Short Normalised" not in row:
+					row["Short Normalised"] = "-"
+				if "Long Normalised" not in row:
+					row["Long Normalised"] = "-"
+						
+				if row["Date/Time"] != "":
+					record = {
+						"file_id": str(file_id),
+						"date" : row["Date/Time"],
+						"open" : row["OPEN"],
+						"high" : row["HIGH"],
+						"low" : row["LOW"],
+						"last_price" : row["LAST_PRICE"],
+						"short" : row["Short Normalised"],
+						"long" : row["Long Normalised"],
+						"action" : row["Action"],
+						"vol" : row["Vol"],
+						"stop1" : row["STOP1"],
+						"target1" : row["Target 1"],
+						"target2" : row["Target 2"],
+						"profit_bp": "",
+						"profit_ccy": "",
+						"trades": "",
+						"exit1": "",
+						"exit2": "",
+						"balance": 0
+					}
+					rows.append(record)
 			db["records"].insert(rows)			
 
 	return ""
@@ -347,6 +373,187 @@ def mark_records_buy_action(collection, action="SELL", onaction=2):
 
 	print "[+] mark_records_buy_action:", len(_coll)		
 	return _coll
+
+
+def do_calc_with_normalization(coll, position):
+	print "[+] CALC with normalization"
+	entry_action = ""
+	entry = ""
+	entry_stop = ""		
+	# entry_target1 = ""
+	# entry_target2 = ""
+	# exit1 = ""
+	# exit2 = ""
+	balance= ""	
+	trade = ""
+	# closed_target1 = False
+	# closed_target2 = False
+	profit_bp = ""
+	balance = 0
+	just_closed = False
+	trades_counter = 0
+	losing_trades_counter = 0
+	min_balance = 0
+	max_balance = 0
+	sum_profit_bp = 0
+	sum_profit_loss = 0
+	# reached_1_target = 0
+	# reached_2_targets = 0
+	sell_lows = []
+	buy_highs = []
+	sum_potential = 0
+	for idx, item in enumerate(coll):
+		if entry:
+			just_closed = False		
+			# STOPPED OUT, NO TARGETS
+			if entry_action == "SELL":
+				sell_lows.append(float(item["low"]))
+
+				if float(item["high"]) >= float(entry_stop):
+					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
+					if (float(entry) - float(entry_stop)) < 0:
+						losing_trades_counter += 1	
+					sum_profit_bp += float(entry) - float(entry_stop)
+					pl = (float(entry) - float(entry_stop)) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format(pl)
+					sum_profit_loss += pl
+					balance += pl
+					if balance >= max_balance:
+						max_balance = balance
+					if balance <= min_balance:
+						min_balance = balance	
+					entry = ""
+					item["highlight"] = "error"
+					exit1 = entry_stop	
+					item["exit1"] = exit1
+					just_closed = True
+
+					potential = float(entry_stop) - min(sell_lows)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+
+				elif item["action"] != "SELL" and float(item["short"]) < 6:
+					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(item["last_price"])) 
+					if (float(entry) - float(item["last_price"])) < 0:
+						losing_trades_counter += 1	
+					sum_profit_bp += float(entry) - float(item["last_price"])
+					pl = (float(entry) - float(item["last_price"])) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format(pl)
+					sum_profit_loss += pl
+					balance += pl
+					if balance >= max_balance:
+						max_balance = balance
+					if balance <= min_balance:
+						min_balance = balance	
+					entry = ""
+					item["highlight"] = "error"
+					exit1 = item["last_price"]	
+					item["exit1"] = exit1
+					just_closed = True
+					# print "[+] LOWS:", " , ".join(map(str, sell_lows))
+					# print "[+] MIN LOW:", min(sell_lows)
+
+					potential = float(entry_stop) - min(sell_lows)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+
+			elif entry_action == "BUY":
+				buy_highs.append(float(item["high"]))
+
+				if float(item["low"]) <= float(entry_stop):
+					item["profit_bp"] = "{0:.4f}".format(float(entry_stop) - float(entry)) 
+					if (float(entry_stop) - float(entry)) < 0:
+						losing_trades_counter += 1	
+					sum_profit_bp += float(entry_stop) - float(entry) 
+					# print "[+] PROFIT(ccy) ", (float(entry_stop) - float(entry)) * float(position)
+					pl = (float(entry_stop) - float(entry)) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format(pl)
+					sum_profit_loss += pl
+					balance += pl
+					if balance >= max_balance:
+						max_balance = balance
+					if balance <= min_balance:
+						min_balance = balance	
+					entry = ""
+					item["highlight"] = "error"
+					exit1 = entry_stop	
+					item["exit1"] = exit1
+					just_closed = True
+
+					print buy_highs, entry_stop
+					potential = max(buy_highs) - float(entry_stop)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+
+				elif item["action"] != "BUY" and float(item["long"]) < 6:
+					item["profit_bp"] = "{0:.4f}".format(float(item["last_price"]) - float(entry)) 
+					if (float(item["last_price"]) - float(entry)) < 0:
+						losing_trades_counter += 1	
+					sum_profit_bp += float(item["last_price"]) - float(entry) 
+					# print "[+] PROFIT(ccy) ", (float(entry_stop) - float(entry)) * float(position)
+					pl = (float(item["last_price"]) - float(entry)) * float(position)
+					item["profit_ccy"] = "{0:.4f}".format(pl)
+					sum_profit_loss += pl
+					balance += pl
+					if balance >= max_balance:
+						max_balance = balance
+					if balance <= min_balance:
+						min_balance = balance	
+					entry = ""
+					item["highlight"] = "error"
+					exit1 = item["last_price"]	
+					item["exit1"] = exit1
+					just_closed = True
+
+					potential = max(buy_highs) - float(entry_stop)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+		else:
+			if just_closed:
+				# print "[+] JUST CLOSED"
+				just_closed = False		
+				# print "[+] JUST CLOSED: ", item["action"], coll[idx-1]["action"] 
+				if item["action"] != "" and item["action"] == coll[idx-1]["action"]: 
+					item["highlight"] = "success"	
+					entry_action = item["action"]
+					entry = item["last_price"]
+					entry_stop = item["stop1"]
+					entry_target1 = item["target1"]
+					entry_target2 = item["target2"]
+					item["trades"] = entry
+					trades_counter += 1
+					trade = entry
+					# print "[+] Entry Stop: ", entry_stop
+					# print "[+]: ", idx, len(coll)
+					# print "[+] Entry: ", entry
+
+			if entry == "" and  "marked" in item and item["marked"]:
+				entry_action = item["action"]
+				item["highlight"] = "success"
+				entry = item["last_price"]
+				entry_stop = item["stop1"]
+				entry_target1 = item["target1"]
+				entry_target2 = item["target2"]
+				item["trades"] = entry
+				trades_counter += 1
+				trade = entry
+				sell_lows = [float(item["low"])]
+				buy_highs = [float(item["high"])]
+				# print "[+] Entry: ", entry_stop
+
+		item["balance"] = str(balance)		
+	
+	return dict(result=coll, 
+				trades_counter=trades_counter,
+				losing_trades_counter=losing_trades_counter,
+				min="{0:.2f}".format(min_balance),
+				max="{0:.2f}".format(max_balance),
+				sum_profit_bp="{0:.4f}".format(sum_profit_bp),
+				sum_profit_loss="{0:.2f}".format(sum_profit_loss),
+				sum_potential="{0:.4f}".format(sum_potential),
+				reached_1_target=0,
+				reached_2_targets=0)
+
 
 def do_calc_ignore_targets(coll, position):
 	print "[+] CALC by ignoring targets"
