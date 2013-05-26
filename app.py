@@ -480,7 +480,6 @@ def do_calc_with_normalization(coll, position):
 					if balance <= min_balance:
 						min_balance = balance	
 
-					print buy_highs, entry_stop
 					potential = max(buy_highs) - float(entry)
 					sum_potential += potential
 					item["potential"] = "{0:.4f}".format(potential)
@@ -544,6 +543,8 @@ def do_calc_with_normalization(coll, position):
 				item["trades"] = entry
 				trades_counter += 1
 				trade = entry
+				sell_lows = []
+				buy_highs = []
 				# sell_lows = [float(item["low"])]
 				# buy_highs = [float(item["high"])]
 				# print "[+] Entry: ", entry_stop
@@ -567,14 +568,14 @@ def do_calc_ignore_targets(coll, position):
 	entry_action = ""
 	entry = ""
 	entry_stop = ""		
-	entry_target1 = ""
-	entry_target2 = ""
-	exit1 = ""
-	exit2 = ""
+	# entry_target1 = ""
+	# entry_target2 = ""
+	# exit1 = ""
+	# exit2 = ""
 	balance= ""	
 	trade = ""
-	closed_target1 = False
-	closed_target2 = False
+	# closed_target1 = False
+	# closed_target2 = False
 	profit_bp = ""
 	balance = 0
 	just_closed = False
@@ -584,13 +585,18 @@ def do_calc_ignore_targets(coll, position):
 	max_balance = 0
 	sum_profit_bp = 0
 	sum_profit_loss = 0
-	reached_1_target = 0
-	reached_2_targets = 0
+	# reached_1_target = 0
+	# reached_2_targets = 0
+	sell_lows = []
+	buy_highs = []
+	sum_potential = 0
 	for idx, item in enumerate(coll):
 		if entry:
 			just_closed = False		
 			# STOPPED OUT, NO TARGETS
 			if entry_action == "SELL":
+				sell_lows.append(float(item["low"]))
+
 				if float(item["high"]) >= float(entry_stop):
 					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(entry_stop)) 
 					if (float(entry) - float(entry_stop)) < 0:
@@ -604,6 +610,11 @@ def do_calc_ignore_targets(coll, position):
 						max_balance = balance
 					if balance <= min_balance:
 						min_balance = balance	
+
+					potential = float(entry) - min(sell_lows)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+						
 					entry = ""
 					item["highlight"] = "error"
 					exit1 = entry_stop	
@@ -623,6 +634,11 @@ def do_calc_ignore_targets(coll, position):
 						max_balance = balance
 					if balance <= min_balance:
 						min_balance = balance	
+
+					potential = float(entry) - min(sell_lows)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+						
 					entry = ""
 					item["highlight"] = "error"
 					exit1 = item["last_price"]	
@@ -630,6 +646,8 @@ def do_calc_ignore_targets(coll, position):
 					just_closed = True
 
 			elif entry_action == "BUY":
+				buy_highs.append(float(item["high"]))
+
 				if float(item["low"]) <= float(entry_stop):
 					item["profit_bp"] = "{0:.4f}".format(float(entry_stop) - float(entry)) 
 					if (float(entry_stop) - float(entry)) < 0:
@@ -644,6 +662,11 @@ def do_calc_ignore_targets(coll, position):
 						max_balance = balance
 					if balance <= min_balance:
 						min_balance = balance	
+
+					potential = max(buy_highs) - float(entry)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+						
 					entry = ""
 					item["highlight"] = "error"
 					exit1 = entry_stop	
@@ -663,7 +686,12 @@ def do_calc_ignore_targets(coll, position):
 					if balance >= max_balance:
 						max_balance = balance
 					if balance <= min_balance:
-						min_balance = balance	
+						min_balance = balance
+
+					potential = max(buy_highs) - float(entry)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+							
 					entry = ""
 					item["highlight"] = "error"
 					exit1 = item["last_price"]	
@@ -679,8 +707,8 @@ def do_calc_ignore_targets(coll, position):
 					entry_action = item["action"]
 					entry = item["last_price"]
 					entry_stop = item["stop1"]
-					entry_target1 = item["target1"]
-					entry_target2 = item["target2"]
+					# entry_target1 = item["target1"]
+					# entry_target2 = item["target2"]
 					item["trades"] = entry
 					trades_counter += 1
 					trade = entry
@@ -693,11 +721,13 @@ def do_calc_ignore_targets(coll, position):
 				item["highlight"] = "success"
 				entry = item["last_price"]
 				entry_stop = item["stop1"]
-				entry_target1 = item["target1"]
-				entry_target2 = item["target2"]
+				# entry_target1 = item["target1"]
+				# entry_target2 = item["target2"]
 				item["trades"] = entry
 				trades_counter += 1
 				trade = entry
+				sell_lows = []
+				buy_highs = []
 				# print "[+] Entry: ", entry_stop
 
 		item["balance"] = str(balance)		
@@ -709,8 +739,8 @@ def do_calc_ignore_targets(coll, position):
 				max="{0:.2f}".format(max_balance),
 				sum_profit_bp="{0:.4f}".format(sum_profit_bp),
 				sum_profit_loss="{0:.2f}".format(sum_profit_loss),
-				reached_1_target=reached_1_target,
-				reached_2_targets=reached_2_targets)
+				reached_1_target=0,
+				reached_2_targets=0)
 
 def do_calc(coll, position, strategy):
 	entry_action = ""
