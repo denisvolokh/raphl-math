@@ -544,8 +544,8 @@ def do_calc_with_normalization(coll, position):
 				item["trades"] = entry
 				trades_counter += 1
 				trade = entry
-				sell_lows = [float(item["low"])]
-				buy_highs = [float(item["high"])]
+				# sell_lows = [float(item["low"])]
+				# buy_highs = [float(item["high"])]
 				# print "[+] Entry: ", entry_stop
 
 		item["balance"] = str(balance)		
