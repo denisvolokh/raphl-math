@@ -122,7 +122,10 @@ def export():
 	marked = mark_records_buy_action(records, "SELL", onaction)
 	marked = mark_records_buy_action(marked, "BUY", onaction)
 
-	calculated = do_calc(marked, position, strategy)
+	if strategy == "0":
+		calculated = do_calc_ignore_targets(marked, position)
+	else:
+		calculated = do_calc(marked, position, strategy)
 	
 	response = Response()
 	response.status_code = 200
