@@ -422,15 +422,16 @@ def do_calc_with_normalization(coll, position):
 						max_balance = balance
 					if balance <= min_balance:
 						min_balance = balance	
+
+					potential = float(entry) - min(sell_lows)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+
 					entry = ""
 					item["highlight"] = "error"
 					exit1 = entry_stop	
 					item["exit1"] = exit1
 					just_closed = True
-
-					potential = float(entry_stop) - min(sell_lows)
-					sum_potential += potential
-					item["potential"] = "{0:.4f}".format(potential)
 
 				elif item["action"] != "SELL" and float(item["short"]) < 6:
 					item["profit_bp"] = "{0:.4f}".format(float(entry) - float(item["last_price"])) 
@@ -445,17 +446,21 @@ def do_calc_with_normalization(coll, position):
 						max_balance = balance
 					if balance <= min_balance:
 						min_balance = balance	
+
+					print "[+] LOWS:", " , ".join(map(str, sell_lows))
+					print "[+] MIN LOW:", min(sell_lows)
+					print "[+] ENTRY:", entry
+					print "[+] potential:", entry, min(sell_lows)
+
+					potential = float(entry) - min(sell_lows)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+
 					entry = ""
 					item["highlight"] = "error"
 					exit1 = item["last_price"]	
 					item["exit1"] = exit1
 					just_closed = True
-					# print "[+] LOWS:", " , ".join(map(str, sell_lows))
-					# print "[+] MIN LOW:", min(sell_lows)
-
-					potential = float(entry_stop) - min(sell_lows)
-					sum_potential += potential
-					item["potential"] = "{0:.4f}".format(potential)
 
 			elif entry_action == "BUY":
 				buy_highs.append(float(item["high"]))
@@ -474,16 +479,17 @@ def do_calc_with_normalization(coll, position):
 						max_balance = balance
 					if balance <= min_balance:
 						min_balance = balance	
+
+					print buy_highs, entry_stop
+					potential = max(buy_highs) - float(entry)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+
 					entry = ""
 					item["highlight"] = "error"
 					exit1 = entry_stop	
 					item["exit1"] = exit1
 					just_closed = True
-
-					print buy_highs, entry_stop
-					potential = max(buy_highs) - float(entry_stop)
-					sum_potential += potential
-					item["potential"] = "{0:.4f}".format(potential)
 
 				elif item["action"] != "BUY" and float(item["long"]) < 6:
 					item["profit_bp"] = "{0:.4f}".format(float(item["last_price"]) - float(entry)) 
@@ -499,15 +505,16 @@ def do_calc_with_normalization(coll, position):
 						max_balance = balance
 					if balance <= min_balance:
 						min_balance = balance	
+
+					potential = max(buy_highs) - float(entry)
+					sum_potential += potential
+					item["potential"] = "{0:.4f}".format(potential)
+
 					entry = ""
 					item["highlight"] = "error"
 					exit1 = item["last_price"]	
 					item["exit1"] = exit1
 					just_closed = True
-
-					potential = max(buy_highs) - float(entry_stop)
-					sum_potential += potential
-					item["potential"] = "{0:.4f}".format(potential)
 		else:
 			if just_closed:
 				# print "[+] JUST CLOSED"
