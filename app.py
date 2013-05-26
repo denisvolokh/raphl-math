@@ -743,6 +743,7 @@ def do_calc_ignore_targets(coll, position):
 				max="{0:.2f}".format(max_balance),
 				sum_profit_bp="{0:.4f}".format(sum_profit_bp),
 				sum_profit_loss="{0:.2f}".format(sum_profit_loss),
+				sum_potential="{0:.4f}".format(sum_potential),
 				reached_1_target=0,
 				reached_2_targets=0)
 
